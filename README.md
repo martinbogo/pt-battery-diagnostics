@@ -24,3 +24,10 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 Jan 20, 2019
 
 Thanks to Segway Nation Tours in Austin, TX - I once again have access to a supply of both good and red-light batteries to continue the development and research!  I have had about a month of downtime, so am catching up.  I now have an Arduino Uno connected to a battery and can read all 23 cells in the pack.  As it turns out, only 5V is needed to "wake" the battery up and I have modifed the picture to reflect that.
+
+Initial Arduino -> Segway Battery pinout : Only four wires are required
+ 
+SCL -> SCL pin on Battery
+SDA -> SDA pin on Battery
+GND -> GND pin on Battery ( CAREFUL! Don't connect to Segway Battery POS terminal )
++5V -> BAT ENABLE on Battery
