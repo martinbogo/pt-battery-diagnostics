@@ -27,7 +27,7 @@ Thanks to Segway Nation Tours in Austin, TX - I once again have access to a supp
 
 Initial Arduino -> Segway Battery pinout : Only four wires are required
  
-SCL -> SCL pin on Battery
-SDA -> SDA pin on Battery
-GND -> GND pin on Battery ( CAREFUL! Don't connect to Segway Battery POS terminal )
-+5V -> BAT ENABLE on Battery
+ - SCL -> SCL pin on Battery
+ - SDA -> SDA pin on Battery
+ - GND -> GND pin on Battery ( CAREFUL! Don't connect to Segway Battery POS terminal )
+ - +5V -> BAT ENABLE on Battery
