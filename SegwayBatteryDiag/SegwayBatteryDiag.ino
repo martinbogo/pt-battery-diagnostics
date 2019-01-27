@@ -6,7 +6,7 @@
  * Created 15 Jan, 2019
  * Updated 27 Jan, 2018 
  * 
- * v 1.01
+ * v 1.02
  * 
  * This code is copyright 2019, and under the MIT License
  * 
@@ -60,16 +60,19 @@ bool readVoltages(void) {
     Wire.requestFrom(TYPE, 3);
     while (Wire.available()) {
       unsigned int t = Wire.read(); // throwaway checksum
+      delay(5);
       unsigned int h = Wire.read();
+      delay(5);
       unsigned int l = Wire.read();
+      delay(5);
       unsigned int voltage = ((h<<8)+l) & 0x7FF; // 11 bit AD for Voltage
       unsigned int battery = ((h<<8)+l) >> 11; // top 5 bits are cell group
       Serial.print("Cell Group [");
       Serial.print(battery);
       Serial.print("] ");
       Serial.print("Voltage is ");
-      Serial.println((3.65 / 2048)*voltage); // LiFePo4 max voltage is 3.65v
-      packvoltage = packvoltage + ((3.65 / 2048)*voltage);
+      Serial.println((3.65 / 2047)*voltage); // LiFePo4 max voltage is 3.65v
+      packvoltage = packvoltage + ((3.65 / 2047)*voltage);
     }
   }
   Serial.print("Battery Voltage is [");
@@ -87,8 +90,11 @@ bool readDebugVoltages(void) {
     Wire.requestFrom(TYPE, 3);
     while (Wire.available()) {
       unsigned int t = Wire.read(); // throwaway checksum
+      delay(5);
       unsigned int h = Wire.read();
+      delay(5);
       unsigned int l = Wire.read();
+      delay(5);
       unsigned int voltage = ((h<<8)+l) & 0x07FF; // 11 bit AD for Voltage
       unsigned int battery = ((h<<8)+l) >> 11; // top 5 bits are cell group
       Serial.print("Cell Group [");
@@ -108,7 +114,7 @@ bool readDebugVoltages(void) {
       Serial.print(l,HEX);
       Serial.print("], Word binary [0b");
       Serial.print((h<<8) + l,BIN);
-      Serial.print("] 12 bit voltage binary/decimal [0b");
+      Serial.print("] 11 bit voltage binary/decimal [0b");
       Serial.print(((h<<8) + l) & 0x7FF,BIN);
       Serial.print("]/[");
       Serial.print(((h<<8) + l) & 0x7FF);
