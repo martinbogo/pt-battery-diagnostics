@@ -21,6 +21,17 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 
 [ UPDATE ]
 
+Jan 26, 2019 
+
+First check-in for the Arduino code!  You can read the voltages from the cell groups with the currently checked in code.  I'll be updating the code with more functions as I clean up my research code.  
+
+Also added:
+
+ - Screen snapshot of the i2c bus communication to the battery when reading the voltages
+ - My notes on reading the voltages, and an explanation of how the protocol works
+ - Updated pinout of the connector, with proper location labels and functions for all pins
+ - A terrible photo of my messy desk, that shows how I wired up the battery.  Embarrasing, but useful...
+
 Jan 20, 2019
 
 Thanks to Segway Nation Tours in Austin, TX - I once again have access to a supply of both good and red-light batteries to continue the development and research!  I have had about a month of downtime, so am catching up.  I now have an Arduino Uno connected to a battery and can read all 23 cells in the pack.  As it turns out, only 5V is needed to "wake" the battery up and I have modifed the picture to reflect that.
