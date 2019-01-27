@@ -33,7 +33,9 @@ Also added:
  - Screen snapshot of the i2c bus communication to the battery when reading the voltages
  - My notes on reading the voltages, and an explanation of how the protocol works
  - Updated pinout of the connector, with proper location labels and functions for all pins
+   -![Connector Pinout](https://github.com/martinbogo/i2-battery-diagnostics/blob/master/segway_pinout.png)
  - A terrible photo of my messy desk, that shows how I wired up the battery.  Embarrasing, but useful...
+   -![Messy Desk](https://github.com/martinbogo/i2-battery-diagnostics/blob/master/photo_of_my_messy_setup.png)
 
 Jan 20, 2019
 
