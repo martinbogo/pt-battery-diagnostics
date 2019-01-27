@@ -1,4 +1,6 @@
 
+Jan 20, 2019
+
 These are my notes on how to read the voltage from the cell groups in the Segway Lithium-Ion battery.  They are not definitive or complete, however they will suffice to read all 23 cell groups in the battery.
 
 The Segway lithium battery has an i2c device at address 0x31. If the i2c bus is scanned, this is the only device that will return an acknowledge.
@@ -17,6 +19,33 @@ You should now be able to compile and upload the .ino sketch in this repository 
 
 NOTE!  If you have a NiMH battery, there are only six cell groups and your i2c bus address is different!  Remember to uncomment the correct lines in the code.
 
+=== METHOD ===
+
+The Segway BMS register to store the voltages of the cell groups is at offset 0x96.
+
+In order to read the voltage and identity of a cell group that register needs to be addressed, then three bytes read from the address. Each repeated call then reads the next cell group up.
+
+first byte is a checksum for the data 
+second byte is the MSB 
+third byte is the LSB
+
+The four top bits of the 16 bit integer contain the identity of the cell group
+The lower twelve bits are a 12 bit analog A/D value from the battery monitor of the voltage
+
+In Arduino there is a handy macro to re-assemble MSB/LSB into an integer - word()
+
+Mask that integer with a 12 bit mask to zero out the top bits to get the voltage:
+i.e.) volage & 0x0FFF
+
+Take that integer, and shift it 11 bits over to be left with the value of the battery group
+i.e.) word(high,low)>>11
+
+To get the actual voltage of the cell group you take the top voltage, divide it by 12 bits, and multiply by the measured voltage.
+i.e.) (4.20/4096)*voltage
+
+Hopefully you find this as entertaining, and useful, as I have!  
+
 Sincerely,
 Martin Bogomolni
+martinbogo@gmail.com
 Battery Hacker
