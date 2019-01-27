@@ -1,7 +1,7 @@
 # i2-battery-diagnostics
 **I2 Battery Diagnostics**
 
-Arduino sketch, library, BOM, and Gerber files for i2/x2 Segway battery diagnostics
+Arduino sketch, documentation for i2/x2 Segway Li-ION battery diagnostics ( also works with NiMH )
 
 There have been a number of closed sourced solutions for battery diagnostics and management for the Segway I2/X2 and related batteries.  Many of these solutions have been sold with "per use" lockouts such as "battery revivers" which work around the battery lockouts.  Even simple diagnostics tools to read the temperatures, the four on-board thermocouples, the voltages and capacities of the 23 batteries in each pack, or just the serial number and battery revision can cost hundreds of dollars/euros!
 
@@ -33,7 +33,9 @@ Also added:
  - Screen snapshot of the i2c bus communication to the battery when reading the voltages
  - My notes on reading the voltages, and an explanation of how the protocol works
  - Updated pinout of the connector, with proper location labels and functions for all pins
+   -![Connector Pinout](https://github.com/martinbogo/i2-battery-diagnostics/blob/master/segway_pinout.png)
  - A terrible photo of my messy desk, that shows how I wired up the battery.  Embarrasing, but useful...
+   -![Messy Desk](https://github.com/martinbogo/i2-battery-diagnostics/blob/master/photo_of_my_messy_setup.png)
 
 Jan 20, 2019
 
