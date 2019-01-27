@@ -2,7 +2,11 @@
  * Segway Battery Diagnostics
  * by Martin Bogomolni <martinbogo@gmail.com>
  * 
+ *
  * Created 15 Jan, 2019
+ * Updated 27 Jan, 2018 
+ * 
+ * v 1.01
  * 
  * This code is copyright 2019, and under the MIT License
  * 
@@ -47,6 +51,33 @@ void loop() {
 }
 
 bool readVoltages(void) {
+  float packvoltage;
+  for (int i = 0; i < CELLGROUPS; i++) {
+    Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
+    Wire.write(0x96); // 0x96 register holds the battery voltages
+    Wire.endTransmission();
+
+    Wire.requestFrom(TYPE, 3);
+    while (Wire.available()) {
+      unsigned int t = Wire.read(); // throwaway checksum
+      unsigned int h = Wire.read();
+      unsigned int l = Wire.read();
+      unsigned int voltage = ((h<<8)+l) & 0x7FF; // 11 bit AD for Voltage
+      unsigned int battery = ((h<<8)+l) >> 11; // top 5 bits are cell group
+      Serial.print("Cell Group [");
+      Serial.print(battery);
+      Serial.print("] ");
+      Serial.print("Voltage is ");
+      Serial.println((3.65 / 2048)*voltage); // LiFePo4 max voltage is 3.65v
+      packvoltage = packvoltage + ((3.65 / 2048)*voltage);
+    }
+  }
+  Serial.print("Battery Voltage is [");
+  Serial.print(packvoltage);
+  Serial.println("]");
+}
+
+bool readDebugVoltages(void) {
   
   for (int i = 0; i < CELLGROUPS; i++) {
     Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
@@ -55,18 +86,33 @@ bool readVoltages(void) {
 
     Wire.requestFrom(TYPE, 3);
     while (Wire.available()) {
-      char t = Wire.read(); // throwaway checksum
-      char h = Wire.read();
-      char l = Wire.read();
-      unsigned int voltage = word(h, l);
-      unsigned int battery = word(h, l);
-      voltage = voltage & 0x0FFF;
-      battery = battery >> 11;
+      unsigned int t = Wire.read(); // throwaway checksum
+      unsigned int h = Wire.read();
+      unsigned int l = Wire.read();
+      unsigned int voltage = ((h<<8)+l) & 0x07FF; // 11 bit AD for Voltage
+      unsigned int battery = ((h<<8)+l) >> 11; // top 5 bits are cell group
       Serial.print("Cell Group [");
       Serial.print(battery);
       Serial.print("] ");
-      Serial.print("Voltage is ");
-      Serial.println((4.20 / 4096)*voltage);
+      Serial.print("Checksum byte binary/hex [0b");
+      Serial.print(t,BIN);
+      Serial.print("]/[");
+      Serial.print(t,HEX);
+      Serial.print("] MSB binary/hex [0b");
+      Serial.print(h,BIN);
+      Serial.print("]/[0x");
+      Serial.print(h,HEX);
+      Serial.print("], LSB binary/hex[0b");
+      Serial.print(l,BIN);
+      Serial.print("]/[0x");
+      Serial.print(l,HEX);
+      Serial.print("], Word binary [0b");
+      Serial.print((h<<8) + l,BIN);
+      Serial.print("] 12 bit voltage binary/decimal [0b");
+      Serial.print(((h<<8) + l) & 0x7FF,BIN);
+      Serial.print("]/[");
+      Serial.print(((h<<8) + l) & 0x7FF);
+      Serial.println("]");
     }
   }
 }
@@ -88,13 +134,16 @@ void introMessage(void) {
 }
 
 void doMenu(void) {
-  Serial.println("V) Read Voltages");
+  Serial.println("V) Read cell group voltages");
+  Serial.println("D) Read cell group voltages with lots of debug Info");
   Serial.println("");
   Serial.println("Press key to select menu item:");
   for (;;) {
     switch (Serial.read()) {
       case 'V': readVoltages(); break;
       case 'v': readVoltages(); break;
+      case 'D': readDebugVoltages(); break;
+      case 'd': readDebugVoltages(); break;
       default: continue;
     }
   }
