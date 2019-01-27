@@ -1,0 +1,22 @@
+
+These are my notes on how to read the voltage from the cell groups in the Segway Lithium-Ion battery.  They are not definitive or complete, however they will suffice to read all 23 cell groups in the battery.
+
+The Segway lithium battery has an i2c device at address 0x31. If the i2c bus is scanned, this is the only device that will return an acknowledge.
+
+The BMS in the battery is powered by the internal cell.  If the cell is compeltely drained and there is insuficcient power to run the BMS, this code may not work.  If the battery does not have at least 12V the BMS may not power up.
+
+First, you will need to apply 12V to the BATTERY ENABLE (J5) pin.  See the diagram on the github site to identify this pin.  If you are using a 12V power adapter on your Arduino, you can use the VIN pin and directly connect it to the BATTERY ENABLE.  
+
+There is a DC/DC converter in the battery, but it is NOT recommended to connect the +5V line of the Arduino to the BATTERY ENABLE line.  The amount of current the DC/DC converter will need to draw exceeds the 60mA capacity of the Arduino to provide and you could damage the Arduino, the BMS, or both.
+
+You will then need to connect the Arduino GND to the battery GND to make sure both are at an even ground potential and get a clean I2C signal from SCK/SDA.   
+
+Last, you will need to connect SCK and SDA lines from the battery to the Arduino.  Different models of Arduino have this line on different pins.  The Uno and Leonardo have these pins broken out in two locations on the header. If in doubt, check the hardware pages on http://www.arduino.cc.
+
+You should now be able to compile and upload the .ino sketch in this repository to your Arduino and read the voltages on the cell groups. 
+
+NOTE!  If you have a NiMH battery, there are only six cell groups and your i2c bus address is different!  Remember to uncomment the correct lines in the code.
+
+Sincerely,
+Martin Bogomolni
+Battery Hacker
