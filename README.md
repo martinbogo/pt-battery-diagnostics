@@ -3,7 +3,9 @@
 
 Arduino sketch, documentation for i2/x2 Segway Li-ION battery diagnostics ( also works with NiMH )
 
-There have been a number of closed sourced solutions for battery diagnostics and management for the Segway I2/X2 and related batteries.  Many of these solutions have been sold with "per use" lockouts such as "battery revivers" which work around the battery lockouts.  Even simple diagnostics tools to read the temperatures, the four on-board thermocouples, the voltages and capacities of the 23 batteries in each pack, or just the serial number and battery revision can cost hundreds of dollars/euros!
+There have been a number of closed sourced solutions for battery diagnostics and management for the Segway I2/X2 and related batteries.  Many of these solutions have been sold with "per use" lockouts such as "battery gauges/revivers" which work around the battery saftey systems to bring low-voltage batteries back above 50V to allow charging.
+
+Even simple diagnostics tools to read the temperatures, the four on-board thermocouples, the voltages and capacities of the parallel battery clusters in each pack, or just the serial number and battery revision can cost hundreds of dollars/euros.
 
 This git repository is designed to open the world of Segway Battery management to everyone, make the cells understandable and useable by the greater community of battery recyclers, powerwall, e-vehicle creators, or just people who want to have a deeper understanding of the battery systems in their Segway PT/I2/X2.
 
