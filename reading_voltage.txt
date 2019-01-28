@@ -29,19 +29,20 @@ first byte is a checksum for the data
 second byte is the MSB 
 third byte is the LSB
 
-The four top bits of the 16 bit integer contain the identity of the cell group
-The lower twelve bits are a 12 bit analog A/D value from the battery monitor of the voltage
+The five top bits of the 16 bit integer contain the identity of the cell group
+The lower 10 bits are a 10 bit analog A/D value from the battery monitor of the voltage!
+The scaling factor is 8000 milivolts * 1023 steps ( 10 bit ) or about 7.820 mV per step.
 
 In Arduino there is a handy macro to re-assemble MSB/LSB into an integer - word()
 
 Mask that integer with a 12 bit mask to zero out the top bits to get the voltage:
-i.e.) volage & 0x0FFF
+i.e.) volage & 0xFFF
 
 Take that integer, and shift it 11 bits over to be left with the value of the battery group
 i.e.) word(high,low)>>11
 
-To get the actual voltage of the cell group you take the top voltage, divide it by 12 bits, and multiply by the measured voltage.
-i.e.) (4.20/4096)*voltage
+To get the actual voltage of the cell group in milivolts you multiply the resultant value by 7.820
+i.e.) 420 * 7.820 = 3284.400 ... 3284 milivolts -> 3.284 volts
 
 Hopefully you find this as entertaining, and useful, as I have!  
 

@@ -6,7 +6,7 @@
    Created 15 Jan, 2019
    Updated 27 Jan, 2018
 
-   v 1.03
+   v 1.10
 
    This code is copyright 2019, and under the MIT License
 
@@ -50,8 +50,8 @@ void loop() {
   }
 }
 
-bool readVoltages(void) {
-  float packvoltage;
+void readVoltages(void) {
+  long packvoltage = 0L;
   for (int i = 0; i < CELLGROUPS; i++) {
     Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
     Wire.write(0x56); // Both 0x96 and 0x56 register hold the battery voltages, mirrored registers!
@@ -66,17 +66,22 @@ bool readVoltages(void) {
       char l = Wire.read();
       delay(5);
       unsigned int battery = word(h, l) >> 11; // top 5 bits are cell group
-      unsigned int voltage = word(h, l) & 0x7FF;
+      unsigned int voltage = word(h, l) & 0x3FF; // 11 bits of ADC
+      long cellvoltage = voltage*7.820; // Scale 8000 milivolts by 1023 steps
       Serial.print("Cell Group [");
       Serial.print(battery);
       Serial.print("] ");
-      Serial.print("Voltage value is ");
-      Serial.println(voltage);
+      Serial.print("Voltage millivolt: ");
+      Serial.println(cellvoltage);
+      packvoltage = packvoltage + (long)cellvoltage;
     }
   }
+  Serial.print("Pack voltage: ");
+  Serial.print((float)packvoltage/1000);
+  Serial.println(" V");
 }
 
-bool readDebugVoltages(void) {
+void readDebugVoltages(void) {
   for (int i = 0; i < CELLGROUPS; i++) {
     Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
     Wire.write(0x56); // Both 0x96 and 0x56 registers hold the battery voltages, mirrored registers!
@@ -90,7 +95,7 @@ bool readDebugVoltages(void) {
       delay(5);
       unsigned int l = Wire.read();
       delay(5);
-      unsigned int voltage = ((h << 8) + l) & 0x7FF; // 11 bit AD for Voltage
+      unsigned int voltage = ((h << 8) + l) & 0x3FF; // 10 bit AD for Voltage
       unsigned int battery = ((h << 8) + l) >> 11; // top 5 bits are cell group
       Serial.print("Cell Group [");
       Serial.print(battery);
@@ -109,7 +114,7 @@ bool readDebugVoltages(void) {
       Serial.print(l, HEX);
       Serial.print("], Word binary [0b");
       Serial.print((h << 8) + l, BIN);
-      Serial.print("] 11 bit voltage binary/decimal [0b");
+      Serial.print("] 10 bit voltage binary/decimal [0b");
       Serial.print(((h << 8) + l) & 0x7FF, BIN);
       Serial.print("]/[");
       Serial.print(((h << 8) + l) & 0x7FF);
