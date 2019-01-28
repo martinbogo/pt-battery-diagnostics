@@ -1,34 +1,34 @@
 /*
- * Segway Battery Diagnostics
- * by Martin Bogomolni <martinbogo@gmail.com>
- * 
- *
- * Created 15 Jan, 2019
- * Updated 27 Jan, 2018 
- * 
- * v 1.02
- * 
- * This code is copyright 2019, and under the MIT License
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
- 
+   Segway Battery Diagnostics
+   by Martin Bogomolni <martinbogo@gmail.com>
+
+
+   Created 15 Jan, 2019
+   Updated 27 Jan, 2018
+
+   v 1.03
+
+   This code is copyright 2019, and under the MIT License
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+*/
+
 #include <Wire.h>
 
 // For Lithium Segway Batteries uncomment these lines
@@ -54,37 +54,32 @@ bool readVoltages(void) {
   float packvoltage;
   for (int i = 0; i < CELLGROUPS; i++) {
     Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
-    Wire.write(0x96); // 0x96 register holds the battery voltages
+    Wire.write(0x56); // Both 0x96 and 0x56 register hold the battery voltages, mirrored registers!
     Wire.endTransmission();
 
     Wire.requestFrom(TYPE, 3);
     while (Wire.available()) {
-      unsigned int t = Wire.read(); // throwaway checksum
+      char t = Wire.read(); // throwaway checksum
       delay(5);
-      unsigned int h = Wire.read();
+      char h = Wire.read();
       delay(5);
-      unsigned int l = Wire.read();
+      char l = Wire.read();
       delay(5);
-      unsigned int voltage = ((h<<8)+l) & 0x7FF; // 11 bit AD for Voltage
-      unsigned int battery = ((h<<8)+l) >> 11; // top 5 bits are cell group
+      unsigned int battery = word(h, l) >> 11; // top 5 bits are cell group
+      unsigned int voltage = word(h, l) & 0x7FF;
       Serial.print("Cell Group [");
       Serial.print(battery);
       Serial.print("] ");
-      Serial.print("Voltage is ");
-      Serial.println((3.65 / 2047)*voltage); // LiFePo4 max voltage is 3.65v
-      packvoltage = packvoltage + ((3.65 / 2047)*voltage);
+      Serial.print("Voltage value is ");
+      Serial.println(voltage);
     }
   }
-  Serial.print("Battery Voltage is [");
-  Serial.print(packvoltage);
-  Serial.println("]");
 }
 
 bool readDebugVoltages(void) {
-  
   for (int i = 0; i < CELLGROUPS; i++) {
     Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
-    Wire.write(0x96); // 0x96 register holds the battery voltages
+    Wire.write(0x56); // Both 0x96 and 0x56 registers hold the battery voltages, mirrored registers!
     Wire.endTransmission();
 
     Wire.requestFrom(TYPE, 3);
@@ -95,29 +90,29 @@ bool readDebugVoltages(void) {
       delay(5);
       unsigned int l = Wire.read();
       delay(5);
-      unsigned int voltage = ((h<<8)+l) & 0x07FF; // 11 bit AD for Voltage
-      unsigned int battery = ((h<<8)+l) >> 11; // top 5 bits are cell group
+      unsigned int voltage = ((h << 8) + l) & 0x7FF; // 11 bit AD for Voltage
+      unsigned int battery = ((h << 8) + l) >> 11; // top 5 bits are cell group
       Serial.print("Cell Group [");
       Serial.print(battery);
       Serial.print("] ");
       Serial.print("Checksum byte binary/hex [0b");
-      Serial.print(t,BIN);
+      Serial.print(t, BIN);
       Serial.print("]/[");
-      Serial.print(t,HEX);
+      Serial.print(t, HEX);
       Serial.print("] MSB binary/hex [0b");
-      Serial.print(h,BIN);
+      Serial.print(h, BIN);
       Serial.print("]/[0x");
-      Serial.print(h,HEX);
+      Serial.print(h, HEX);
       Serial.print("], LSB binary/hex[0b");
-      Serial.print(l,BIN);
+      Serial.print(l, BIN);
       Serial.print("]/[0x");
-      Serial.print(l,HEX);
+      Serial.print(l, HEX);
       Serial.print("], Word binary [0b");
-      Serial.print((h<<8) + l,BIN);
+      Serial.print((h << 8) + l, BIN);
       Serial.print("] 11 bit voltage binary/decimal [0b");
-      Serial.print(((h<<8) + l) & 0x7FF,BIN);
+      Serial.print(((h << 8) + l) & 0x7FF, BIN);
       Serial.print("]/[");
-      Serial.print(((h<<8) + l) & 0x7FF);
+      Serial.print(((h << 8) + l) & 0x7FF);
       Serial.println("]");
     }
   }
@@ -140,8 +135,8 @@ void introMessage(void) {
 }
 
 void doMenu(void) {
-  Serial.println("V) Read cell group voltages");
-  Serial.println("D) Read cell group voltages with lots of debug Info");
+  Serial.println("V) Read raw cell group voltages");
+  Serial.println("D) Read raw cell group voltages with lots of debug Info");
   Serial.println("");
   Serial.println("Press key to select menu item:");
   for (;;) {
