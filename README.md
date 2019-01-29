@@ -56,12 +56,12 @@ Register 215 ( 0xD7 ) reads 4 triplets.  Byte 0 ( unknown ), Byte 2 increments 0
 
 This data parses to the following binary:
 
-0000 0001 0110 1000
+```0000 0001 0110 1000
 0001 0001 0110 0100
 0010 0001 0111 1010
 0011 0001 0110 1101
-^^^^ Measurement index nibble
-     ^^^^^^^^^^^^^^ Possible A/D conversion of the temperature ( 12 bit, or 10 bit? )
+---- Measurement index nibble
+     -------------- Possible A/D conversion of the temperature ( 12 bit, or 10 bit? )```
 
 And of course, registers 150 (0x96) and 86 (0x56) contain the battery voltage data encoded as:
 
