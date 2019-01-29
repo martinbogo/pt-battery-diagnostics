@@ -54,6 +54,15 @@ Register 215 ( 0xD7 ) reads 4 triplets.  Byte 0 ( unknown ), Byte 2 increments 0
 
 <215> [7F:1:68] [F3:11:64] [4D:21:7A] [4A:31:6D]
 
+This data parses to the following binary:
+
+0000 0001 0110 1000
+0001 0001 0110 0100
+0010 0001 0111 1010
+0011 0001 0110 1101
+^^^^ Measurement index nibble
+     ^^^^^^^^^^^^^^ Possible A/D conversion of the temperature ( 12 bit, or 10 bit? )
+
 And of course, registers 150 (0x96) and 86 (0x56) contain the battery voltage data encoded as:
 
 Byte 0 (checksum) : Byte 1, Byte 2 are the MSB and LSB of a 16 bit integer.  Top 3 bits are the battery index.  Lower 10 bits are A/D converted battery voltage data, where each tick represents 8 volts / 1023 steps.
