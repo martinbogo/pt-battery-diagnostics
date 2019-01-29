@@ -61,7 +61,8 @@ This data parses to the following binary:
 0010 0001 0111 1010
 0011 0001 0110 1101
 ---- Measurement index nibble
-     -------------- Possible A/D conversion of the temperature ( 12 bit, or 10 bit? )```
+     -------------- Possible A/D conversion of the temperature ( 12 bit, or 10 bit? )
+```
 
 And of course, registers 150 (0x96) and 86 (0x56) contain the battery voltage data encoded as:
 
