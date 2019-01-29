@@ -26,9 +26,26 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 
 [ UPDATE ]
 
-Jan 27, 2019
+Jan 28, 2019
 
-After debugging the code with @gmulberry's input and live experimentation by feeding arbitrary voltages to an opened battery, we have determined that it's likely a 10bit ADC and that the voltage scaling factor is 8V ( 8000mV ) divided by 1023 steps ( 10 bit ADC ) to calculate the value of the voltage on the pack.
+The Segway battery exposes interesting data on the following registers on i2c when read in the same way as the battery voltage values ( 3 bytes read, discard first byte, data encoded on 2nd and 3rd byte ) 
+
+Register 12 ( 0xC ) reads 31 triplets.  Byte 0 ( unknown ) , Byte 2 counts from Hex 0 -> 1E, Byte 3 ( unknown )
+Register 198 ( 0xC6 ) reads 31 triplets.  Byte 0 ( unknown ), Byte 2 counts from Hex 0 -> 1E, Byte 3 ( unknown )
+Register 204 ( 0xCC ) reads 31 triplets.  Byte 0 ( unknown ), Bute 2 counts from Hex 0 -> 1E, Byte 3 ( unknown )
+1st and 3rd values repeat after 31 reads
+
+Register 23 ( 0x17 ) reads 4 triplets.  Byte 0 ( unknown ), Byte 2 increments 0x1,0x11,0x21,0x31, byte 3 ( unknown )
+Register 215 ( 0xD7 ) reads 4 triplets.  Byte 0 ( unknown ), Byte 2 increments 0x1,0x11,0x21,0x31, byte 3 ( unknown )
+1st and 3rd values repeat after four reads - these are likely the temperature readings 
+
+And of course, registers 150 (0x96) and 86 (0x56) contain the battery voltage data encoded as:
+
+Byte 0 (checksum) : Byte 1, Byte 2 are the MSB and LSB of a 16 bit integer.  Top 3 bits are the battery index.  Lower 10 bits are A/D converted battery voltage data, where each tick represents 8 volts / 1023 steps.
+
+Jan 27, 
+
+After debugging the code with @gmulberry's input and live experimentation by feeding arbitrary voltages to an opened battery, we have determined that it's likely a 10bit ADC and that the voltage scaling factor is 8V ( 8000mV ) divided by 1023 steps ( 10 bit ADC ) to cealculate the value of the voltage on the pack.
 
 The code has been changed to reflect this, switching variables to the 32-bit long type to handle the math.  Each step of the ADC represents (8000/1023) or ~7.820 milivolts.
 
