@@ -56,35 +56,36 @@ void loop() {
 }
 
 void readRegs(void) {
+  unsigned char chk[128];
   unsigned char msb[128];
   unsigned char lsb[128];
-  for ( unsigned int scan = 0; scan < 2; scan++ ) {
-    Serial.print("Register <");
-    Serial.print(curiousregs[scan]);
-    Serial.println("> ");
-    for ( unsigned int itor = 0; itor < 31; itor++ ) {
-      Wire.beginTransmission(TYPE);
-      Wire.write(curiousregs[scan]);
-      Wire.endTransmission();
-      Wire.requestFrom(TYPE, 3);
-      while (Wire.available()) {
-        unsigned char a = Wire.read();
-        unsigned char b = Wire.read();
-        unsigned char c = Wire.read();
-        msb[itor] = b;
-        lsb[itor] = c;
-      }
+  for ( unsigned int itor = 0; itor < 31; itor++ ) {
+    Wire.beginTransmission(TYPE);
+    Wire.write(0xC);
+    Wire.endTransmission();
+    Wire.requestFrom(TYPE, 3);
+    while (Wire.available()) {
+      unsigned char a = Wire.read();
+      unsigned char b = Wire.read();
+      unsigned char c = Wire.read();
+      chk[itor] = a;
+      msb[itor] = b;
+      lsb[itor] = c;
     }
-    for ( int u = 0; u < 31; u++ ) {
-      printBits(msb[u]);
-      Serial.print(" ");
-      printBits(lsb[u]);
-      Serial.print(" ");
-      Serial.print(msb[u],HEX);
-      Serial.print(" ");
-      Serial.print(lsb[u],HEX);
-      Serial.println();
-    }
+  }
+  for ( int u = 0; u < 31; u++ ) {
+    printBits(chk[u]);
+    Serial.print(" ");
+    printBits(msb[u]);
+    Serial.print(" ");
+    printBits(lsb[u]);
+    Serial.print(" ");
+    Serial.print(chk[u], HEX);
+    Serial.print(" ");
+    Serial.print(msb[u], HEX);
+    Serial.print(" ");
+    Serial.print(lsb[u], HEX);
+    Serial.println();
   }
 }
 
@@ -235,11 +236,11 @@ void doMenu(void) {
   }
 }
 
-void printBits(byte myByte){
- for(byte mask = 0x80; mask; mask >>= 1){
-   if(mask  & myByte)
-       Serial.print('1');
-   else
-       Serial.print('0');
- }
+void printBits(byte myByte) {
+  for (byte mask = 0x80; mask; mask >>= 1) {
+    if (mask  & myByte)
+      Serial.print('1');
+    else
+      Serial.print('0');
+  }
 }
