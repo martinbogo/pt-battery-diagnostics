@@ -26,6 +26,12 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 
 [ UPDATE ]
 
+Feb 5, 2019
+
+The battery voltage and temperature sensor code has been decoded, and the code is merged into the master branch.  
+
+The data in register 12/204 is being worked on now, and I have a couple people helping to decode the data found on register 198 as well.  If you have a theory or suggestion as to the data, please submit an issue here on GitHub, or just modify the code and submit a patch request.
+
 Jan 28, 2019
 
 The Segway battery exposes interesting data on the following registers on i2c when read in the same way as the battery voltage values ( 3 bytes read, discard first byte, data encoded on 2nd and 3rd byte ) 
