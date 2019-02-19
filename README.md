@@ -26,6 +26,10 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 
 [ UPDATE ]
 
+Feb 19, 2019
+
+On request of krex4, I am adding an i2c_display branch, with support for a four line backlit i2c display available on Amazon.com ( and other vendors such as AliExpress/BangGood, eBay, etc )   Once the display code is stable, I will merge it back into the master code branch.  
+
 Feb 5, 2019
 
 The battery voltage and temperature sensor code has been decoded, and the code is merged into the master branch.  
