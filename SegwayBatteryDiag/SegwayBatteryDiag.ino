@@ -4,9 +4,9 @@
 
 
    Created 15 Jan, 2019
-   Updated 27 Jan, 2018
+   Updated 20 Feb, 2019
 
-   v 1.20
+   v 1.52
 
    This code is copyright 2019, and under the MIT License
 
@@ -31,17 +31,63 @@
 
 #include <Wire.h>
 
+//#define I2C_DISPLAY
+/* If you want to use an LCD I2C display, make sure you have the
+   LiquidCrystal_I2C library installed and enabled in your Arduino
+   installation
+*/
+#ifdef I2C_DISPLAY
+#include <LiquidCrystal_I2C.h>
+#define DISPADDR 0x27
+#define DISPCOLS 20
+#define DISPROWS 4
+LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
+#endif
+
+typedef struct {
+  unsigned char chk;
+  unsigned char msb;
+  unsigned char lsb;
+  unsigned char mod;
+} PACKET;
+
+typedef struct {
+  unsigned int chk : 8;
+  unsigned int temp : 12;
+} TEMP_SENSOR;
+
+typedef struct {
+  unsigned int chk : 8;
+  unsigned int voltage : 10;
+} CGROUP;
+
+
 // For Lithium Segway Batteries uncomment these lines
 #define TYPE 0x31
 #define CELLGROUPS 23
-#define TEMPSENSORS 4
+#define TSENSORS 4
 // For NiMH Segway Batteries uncomment these lines
 //#define TYPE 0x62
 //#define CELLGROUPS 6
-//#define TEMPSENSORS 4
+//#define TSENSORS 4
 
-int curiousregs[4] = { 12, 204 };
-int unknownregs[1] = { 198 };
+/*
+   Currently known registers
+
+   0x17 0xD7 hold the temperature sensor info in 4 reads
+   0x56 0x96 are used for battery group voltage in 23 reads
+   0xC6 has the battery revision and serial number in 37 reads
+
+   Currently unidentified registers
+
+   0xC 0xCC is unknown but may contain battery status information
+
+*/
+
+String serialnum;
+
+TEMP_SENSOR tempsensor[TSENSORS];
+CGROUP cgroup[CELLGROUPS];
 
 void setup() {
   Wire.begin();        // join i2c bus (address optional for master)
@@ -55,59 +101,93 @@ void loop() {
   }
 }
 
-void readRegs(void) {
-  unsigned char chk[128];
-  unsigned char msb[128];
-  unsigned char lsb[128];
-  for ( unsigned int itor = 0; itor < 31; itor++ ) {
-    Wire.beginTransmission(TYPE);
-    Wire.write(0xC);
-    Wire.endTransmission();
-    Wire.requestFrom(TYPE, 3);
-    while (Wire.available()) {
-      unsigned char a = Wire.read();
-      unsigned char b = Wire.read();
-      unsigned char c = Wire.read();
-      chk[itor] = a;
-      msb[itor] = b;
-      lsb[itor] = c;
-    }
+int readPacket(int regval, PACKET &packet) {
+  unsigned char mod;
+  unsigned char chk;
+  unsigned char msb;
+  unsigned char lsb;
+
+  Wire.beginTransmission(TYPE);
+  Wire.write(regval);
+  int result = Wire.endTransmission();
+  if ( result != 0 ) {
+    Serial.print("I2C communication failed with error: [");
+    Serial.print(result, DEC);
+    Serial.println("]");
+    packet.mod = 0xff;
+    packet.msb = 0xff;
+    packet.lsb = 0xff;
+    packet.chk = 0xff;
+    return -1;
   }
-  for ( int u = 0; u < 31; u++ ) {
-    printBits(chk[u]);
-    Serial.print(" ");
-    printBits(msb[u]);
-    Serial.print(" ");
-    printBits(lsb[u]);
-    Serial.print(" ");
-    Serial.print(chk[u], HEX);
-    Serial.print(" ");
-    Serial.print(msb[u], HEX);
-    Serial.print(" ");
-    Serial.print(lsb[u], HEX);
-    Serial.println();
+
+  Wire.requestFrom(TYPE, 3);
+  while (Wire.available()) {
+    packet.chk = Wire.read();
+    packet.msb = Wire.read();
+    packet.lsb = Wire.read();
+    packet.mod = (packet.chk + packet.msb + packet.lsb) % 8;
   }
 }
 
+void readSerialNumber(void) {
+  PACKET packet[37]; // We need to read 37 packets from register 198/0xC6
+  PACKET temppacket; // To put the packet in the right place, in the right order
+  char serial[16];
+  char rev[4];
+  int result;
+
+  memset(serial, 0, sizeof(serial));
+  memset(rev, 0, sizeof(rev));
+
+  for ( int itor = 0; itor < 37; itor++ ) {
+    result = readPacket(0xC6, temppacket);
+    if ( result == -1 ) {
+      return;
+    }
+    if ( temppacket.chk == 0xff ) {
+      Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
+      return;
+    }
+    memcpy(&packet[temppacket.msb], &temppacket, sizeof(temppacket));
+  }
+
+  for ( int itor; itor < 12; itor++ ) {
+    serial[itor] = packet[itor + 21].lsb;
+  }
+
+  for ( int itor = 0; itor < 2; itor++ ) {
+    rev[itor] = packet[itor + 12].lsb;
+  }
+
+  Serial.print(serial);
+  Serial.print(" Rev: ");
+  Serial.println(rev);
+
+}
+
 void readTemps(void) {
-  for (int i = 0; i < TEMPSENSORS; i++) {
+  for (int i = 0; i < TSENSORS; i++) {
     Wire.beginTransmission(TYPE);
     Wire.write(0x17); // 0x17 and 0xD7 hold the temp sensor values, mirrored registers!
-    Wire.endTransmission();
+    int result = Wire.endTransmission();
+    if ( result != 0 ) {
+      Serial.print("I2C communication failed with error: [");
+      Serial.print(result, DEC);
+      Serial.println("]");
+      return;
+    }
 
     Wire.requestFrom(TYPE, 3);
     while (Wire.available()) {
-      char t = Wire.read(); // throwaway checksum
+      unsigned char t = Wire.read(); // checksum
       delay(5);
       char h = Wire.read(); // high byte
       delay(5);
       char l = Wire.read(); // low byte
-      unsigned int sensornum = word(h, l) >> 12; // top 4 bits are sensor number
-      unsigned int rawtemp = word(h, l) & 0xFFF; // mask off 12 bits ADC
-      float ctemp = rawtemp * 0.0625; // Sensor -256C to +256C scaled by 4096
-      Serial.print("Temp Sensor [");
-      Serial.print(sensornum);
-      Serial.print("] ");
+      tempsensor[i].chk = t;
+      tempsensor[i].temp = word(h, l) & 0xFFF; // mask off 12 bits ADC
+      float ctemp = tempsensor[i].temp * 0.0625; // Sensor -256C to +256C scaled by 4096
       Serial.print("Temperature in deg C: ");
       Serial.println(ctemp);
     }
@@ -115,84 +195,43 @@ void readTemps(void) {
 }
 
 void readVoltages(void) {
-  long packvoltage = 0L;
-  for (int i = 0; i < CELLGROUPS; i++) {
-    Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
-    Wire.write(0x56); // Both 0x96 and 0x56 register hold the battery voltages, mirrored registers!
-    Wire.endTransmission();
+  PACKET temppacket;
+  int number;
+  float packvoltage = 0;
+  int result;
 
-    Wire.requestFrom(TYPE, 3);
-    while (Wire.available()) {
-      char t = Wire.read(); // throwaway checksum
-      delay(5);
-      char h = Wire.read();
-      delay(5);
-      char l = Wire.read();
-      delay(5);
-      unsigned int battery = word(h, l) >> 11; // top 5 bits are cell group
-      int voltage = word(h, l) & 0x3FF; // 10 bits of ADC
-      if ( voltage == 0x3ff ) {
-        voltage = -1;
-      }; // 0x3FF means a completely dead group
-      long cellvoltage = voltage * 7.820; // Scale 8000 milivolts by 1023 steps
-      Serial.print("Cell Group [");
-      Serial.print(battery);
-      Serial.print("] ");
-      Serial.print("Voltage millivolt: ");
-      if ( voltage < 0 ) {
-        Serial.println("DEAD");
-        cellvoltage =  0;
-      } else {
-        Serial.println(cellvoltage);
-      }
-      packvoltage = packvoltage + (long)cellvoltage;
+  for (int itor = 0; itor < CELLGROUPS; itor++) {
+    result = readPacket(0x56, temppacket); // Both 0x56 and 0x96 registers hold the battery voltages, mirrored registers!
+    if ( result == -1 ) {
+      return;
+    }
+    if ( temppacket.mod == 0xff ) {
+      Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
+      return;
+    }
+    number = word(temppacket.msb, temppacket.lsb) >> 11; // top 5 bits are cell group
+    cgroup[number].chk = temppacket.chk;
+    cgroup[number].voltage = word(temppacket.msb, temppacket.lsb) & 0x3FF; // 10 bits of ADC
+  }
+
+  for (int itor = 0; itor < CELLGROUPS; itor++) {
+    float cellvoltage = ( cgroup[itor].voltage * 7.8201 ) / 1000;
+    Serial.print("Cell group ");
+    Serial.print(itor);
+    Serial.print(" voltage is ");
+    if ( cgroup[itor].voltage < 1023 ) {
+      Serial.println(cellvoltage);
+    } else {
+      Serial.println("ERROR/INVALID");
+    }
+    if ( cgroup[itor].voltage < 1023 ) {
+      packvoltage = packvoltage + cellvoltage;
     }
   }
+
   Serial.print("Pack voltage: ");
-  Serial.print((float)packvoltage / 1000);
+  Serial.print((float)packvoltage);
   Serial.println(" V");
-}
-
-void readDebugVoltages(void) {
-  for (int i = 0; i < CELLGROUPS; i++) {
-    Wire.beginTransmission(TYPE); // i2c device on battery is at address 0x31
-    Wire.write(0x56); // Both 0x96 and 0x56 registers hold the battery voltages, mirrored registers!
-    Wire.endTransmission();
-
-    Wire.requestFrom(TYPE, 3);
-    while (Wire.available()) {
-      unsigned int t = Wire.read(); // throwaway checksum
-      delay(5);
-      unsigned int h = Wire.read();
-      delay(5);
-      unsigned int l = Wire.read();
-      delay(5);
-      unsigned int voltage = ((h << 8) + l) & 0x7FF; // 11 bit AD for Voltage
-      unsigned int battery = ((h << 8) + l) >> 11; // top 5 bits are cell group
-      Serial.print("Cell Group [");
-      Serial.print(battery);
-      Serial.print("] ");
-      Serial.print("Checksum byte binary/hex [0b");
-      Serial.print(t, BIN);
-      Serial.print("]/[");
-      Serial.print(t, HEX);
-      Serial.print("] MSB binary/hex [0b");
-      Serial.print(h, BIN);
-      Serial.print("]/[0x");
-      Serial.print(h, HEX);
-      Serial.print("], LSB binary/hex[0b");
-      Serial.print(l, BIN);
-      Serial.print("]/[0x");
-      Serial.print(l, HEX);
-      Serial.print("], Word binary [0b");
-      Serial.print((h << 8) + l, BIN);
-      Serial.print("] 10 bit voltage binary/decimal [0b");
-      Serial.print(((h << 8) + l) & 0x3FF, BIN);
-      Serial.print("]/[");
-      Serial.print(((h << 8) + l) & 0x3FF);
-      Serial.println("]");
-    }
-  }
 }
 
 void introMessage(void) {
@@ -213,9 +252,8 @@ void introMessage(void) {
 
 void doMenu(void) {
   Serial.println("V) Read raw cell group voltages");
-  Serial.println("D) Read raw cell group voltages with lots of debug Info");
   Serial.println("T) Read temperature sensors");
-  Serial.println("Q) Query some interesting registers");
+  Serial.println("S) Read serial number");
   Serial.println("");
   Serial.println("Press key to select menu item:");
   for (;;) {
@@ -224,12 +262,10 @@ void doMenu(void) {
       switch (inByte) {
         case 'V': readVoltages(); break;
         case 'v': readVoltages(); break;
-        case 'D': readDebugVoltages(); break;
-        case 'd': readDebugVoltages(); break;
         case 'T': readTemps(); break;
         case 't': readTemps(); break;
-        case 'Q': readRegs(); break;
-        case 'q': readRegs(); break;
+        case 'S': readSerialNumber(); break;
+        case 's': readSerialNumber(); break;
         default: continue;
       }
     }
