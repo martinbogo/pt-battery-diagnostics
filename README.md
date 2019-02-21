@@ -26,6 +26,73 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 
 [ UPDATE ]
 
+Feb 21, 2019
+
+The serial number has been located! The checksum algorithm has been decoded!  Here's the quick summary:
+
+For registers that are read as triplets ( temp / voltage / serial number ) a 3-byte packet is read in the following order:
+
+[checkum] [ most significant byte ] [ least significant byte ]
+
+In order to make sure the packet was transmitted properly, the checksum algorithm is simple -- add the three values up, and take the modulus 8 of the sum.  If the value is equal to 1, the packet is valid.
+
+i.e.: 
+
+[ 2D ] + [ 1C ] + [ 30 ] = 0x79
+0x79 & 8 = 1
+
+The packet is valid and was transmitted properly.   
+
+I am rewriting the code with a generic packet reader, which will check for i2c bus errors and the CRC, then return a PACKET struct containing the calculated checksum, and the three bytes ( everything reads 0xFF if there was an error )
+
+-- 
+
+The serial number is in plaintext ASCII, located at register 0xC6 (198)
+
+Revision are the bytes stored in 0xC-0xD [ AH in the sample data below ]
+Serial number are the bytes stored in 0x15-0x20 [ C01061400098 in the data below ]
+
+```
+10101010 00000000 01001111 AA 0 4F
+11110111 00000001 00000001 F7 1 1
+01000101 00000010 00110010 45 2 32
+01000110 00000011 00110000 46 3 30
+00111100 00000100 00111001 3C 4 39
+00111110 00000101 00110110 3E 5 36
+00111100 00000110 00110111 3C 6 37
+01000010 00000111 00110000 42 7 30
+01000001 00001000 00110000 41 8 30
+01000000 00001001 00110000 40 9 30
+10111111 00001010 00110000 BF A 30
+00111101 00001011 00110001 3D B 31
+00101100 00001100 01000001 2C C 41 __A__
+00100100 00001101 01001000 24 D 48 __H__
+10111010 00001110 00110001 BA E 31
+10111010 00001111 00110000 BA F 30
+00111000 00010000 00110001 38 10 31
+00111000 00010001 00110000 38 11 30
+10101110 00010010 00111001 AE 12 39
+00110010 00010011 00110100 32 13 34
+00101110 00010100 00110111 2E 14 37
+10100001 00010101 01000011 A1 15 43 __C__
+00110011 00010110 00110000 33 16 30 __0__
+10110001 00010111 00110001 B1 17 31 __1__
+00110001 00011000 00110000 31 18 30 __0__
+10101010 00011001 00110110 AA 19 36 __6__
+10101110 00011010 00110001 AE 1A 31 __1__
+10101010 00011011 00110100 AA 1B 34 __4__
+00101101 00011100 00110000 2D 1C 30 __0__
+00101100 00011101 00110000 2C 1D 30 __0__
+10101011 00011110 00110000 AB 1E 30 __0__
+00100001 00011111 00111001 21 1F 39 __9__
+10100001 00100000 00111000 A1 20 38 __8__
+10000011 00100001 01010101 83 21 55
+00000010 00100010 01010101 2 22 55
+01011110 00100011 11111000 5E 23 F8
+00100111 00100100 10101110 27 24 AE
+11010100 00100101 00000000 D4 25 0
+```
+
 Feb 5, 2019
 
 The battery voltage and temperature sensor code has been decoded, and the code is merged into the master branch.  
