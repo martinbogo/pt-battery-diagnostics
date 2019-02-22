@@ -22,7 +22,7 @@ I'm working on:
  - A BOM ( Bill of Materials ) with sources and links to purchase parts 
  - An STL file to 3D print a compatible connector to the Segway battery and instructions on how to assemble and use it safely.
 
-I'll be releasing a beta of the software and hardware schematics mid-January 2019.  For information, please contact me here on GitHub.  I generally respond within 1-2 days.
+For information, please contact me here on GitHub by creating an issue.  I generally respond within 1-2 days.
 
 [ UPDATE ]
 
