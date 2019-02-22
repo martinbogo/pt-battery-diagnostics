@@ -28,6 +28,46 @@ I'll be releasing a beta of the software and hardware schematics mid-January 201
 
 Feb 21, 2019
 
+There is one more register of information to decode.  The data lives at 0xC/0xCC, and there are 0x0->0x1E packets to be read from that address.   I have added and uploaded a menu item 'U' into the code to read this address, so that we can work on decoding the meaning of the values stored there.
+
+It uses the same packet communication method -- reading triplets of data [check] [high] [low]
+
+```
+checksum [0xC3] msb [0x0] lsb [0xB0] ASCII [⸮]
+checksum [0xF1] msb [0x1] lsb [0x1] ASCII []
+checksum [0xBE] msb [0x2] lsb [0x33] ASCII [3]
+checksum [0x3F] msb [0x3] lsb [0x31] ASCII [1]
+checksum [0x37] msb [0x4] lsb [0x38] ASCII [8]
+checksum [0x3A] msb [0x5] lsb [0x34] ASCII [4]
+checksum [0xC] msb [0x6] lsb [0x61] ASCII [a]
+checksum [0x34] msb [0x7] lsb [0x38] ASCII [8]
+checksum [0xA8] msb [0x8] lsb [0x43] ASCII [C]
+checksum [0x27] msb [0x9] lsb [0x43] ASCII [C]
+checksum [0xA6] msb [0xA] lsb [0x43] ASCII [C]
+checksum [0x25] msb [0xB] lsb [0x43] ASCII [C]
+checksum [0x37] msb [0xC] lsb [0x30] ASCII [0]
+checksum [0x33] msb [0xD] lsb [0x33] ASCII [3]
+checksum [0xA3] msb [0xE] lsb [0x42] ASCII [B]
+checksum [0xA2] msb [0xF] lsb [0x42] ASCII [B]
+checksum [0x21] msb [0x10] lsb [0x42] ASCII [B]
+checksum [0x20] msb [0x11] lsb [0x42] ASCII [B]
+checksum [0x31] msb [0x12] lsb [0x30] ASCII [0]
+checksum [0x2D] msb [0x13] lsb [0x33] ASCII [3]
+checksum [0x3F] msb [0x14] lsb [0x20] ASCII [ ]
+checksum [0x3E] msb [0x15] lsb [0x20] ASCII [ ]
+checksum [0x3D] msb [0x16] lsb [0x20] ASCII [ ]
+checksum [0x3C] msb [0x17] lsb [0x20] ASCII [ ]
+checksum [0xBB] msb [0x18] lsb [0x20] ASCII [ ]
+checksum [0xBA] msb [0x19] lsb [0x20] ASCII [ ]
+checksum [0xB9] msb [0x1A] lsb [0x20] ASCII [ ]
+checksum [0x83] msb [0x1B] lsb [0x55] ASCII [U]
+checksum [0x82] msb [0x1C] lsb [0x55] ASCII [U]
+checksum [0xD5] msb [0x1D] lsb [0x81] ASCII [⸮]
+checksum [0xDC] msb [0x1E] lsb [0xF9] ASCII [⸮]
+```
+
+Feb 21, 2019
+
 The serial number has been located! The checksum algorithm has been decoded!  Here's the quick summary:
 
 For registers that are read as triplets ( temp / voltage / serial number ) a 3-byte packet is read in the following order:
