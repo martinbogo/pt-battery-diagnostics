@@ -6,7 +6,7 @@
    Created 15 Jan, 2019
    Updated 20 Feb, 2019
 
-   v 1.52
+   v 1.55
 
    This code is copyright 2019, and under the MIT License
 
@@ -61,6 +61,12 @@ typedef struct {
   unsigned int voltage : 10;
 } CGROUP;
 
+typedef struct {
+  unsigned char chk;
+  unsigned char msb;
+  unsigned char lsb;
+} UNK;
+
 
 // For Lithium Segway Batteries uncomment these lines
 #define TYPE 0x31
@@ -88,6 +94,7 @@ String serialnum;
 
 TEMP_SENSOR tempsensor[TSENSORS];
 CGROUP cgroup[CELLGROUPS];
+UNK unknown[31];
 
 void setup() {
   Wire.begin();        // join i2c bus (address optional for master)
@@ -234,6 +241,33 @@ void readVoltages(void) {
   Serial.println(" V");
 }
 
+void readUnknown(void) {
+  PACKET temppacket;
+  int number;
+  float packvoltage = 0;
+  int result;
+
+  for (int itor = 0; itor < 0x1F; itor++) {
+    result = readPacket(0xC, temppacket); // 0xC and 0xCC are mirrored registers with unknown data
+    if ( result == -1 ) {
+      return;
+    }
+    if ( temppacket.mod == 0xff ) {
+      Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
+      return;
+    }
+    Serial.print("checksum [0x");
+    Serial.print(temppacket.chk,HEX);
+    Serial.print("] ");
+    Serial.print("msb [0x");
+    Serial.print(temppacket.msb),HEX;
+    Serial.print("] ");
+    Serial.print("lsb [0x");
+    Serial.print(temppacket.lsb,HEX);
+    Serial.println("]");
+  }
+}
+
 void introMessage(void) {
   Serial.println("Segway Battery Diagnostics");
   Serial.println("(C) 2019 Martin Bogomolni <martinbogo@gmail.com>");
@@ -254,6 +288,7 @@ void doMenu(void) {
   Serial.println("V) Read raw cell group voltages");
   Serial.println("T) Read temperature sensors");
   Serial.println("S) Read serial number");
+  Serial.println("U) Read unknown data from register 0xC/0xCC");
   Serial.println("");
   Serial.println("Press key to select menu item:");
   for (;;) {
@@ -266,6 +301,8 @@ void doMenu(void) {
         case 't': readTemps(); break;
         case 'S': readSerialNumber(); break;
         case 's': readSerialNumber(); break;
+        case 'U': readUnknown(); break;
+        case 'u': readUnknown(); break;
         default: continue;
       }
     }
