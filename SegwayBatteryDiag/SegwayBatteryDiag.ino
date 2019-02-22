@@ -260,10 +260,13 @@ void readUnknown(void) {
     Serial.print(temppacket.chk,HEX);
     Serial.print("] ");
     Serial.print("msb [0x");
-    Serial.print(temppacket.msb),HEX;
+    Serial.print(temppacket.msb,HEX);
     Serial.print("] ");
     Serial.print("lsb [0x");
     Serial.print(temppacket.lsb,HEX);
+    Serial.print("] ");
+    Serial.print("ASCII [");
+    Serial.write(temppacket.lsb);
     Serial.println("]");
   }
 }
