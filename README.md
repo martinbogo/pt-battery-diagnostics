@@ -27,6 +27,17 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+Feb 25, 2019
+
+I'm going to organize the directory structure a little better today and add my lab notes into a separate "docs" directory with notes on the register functions and packet structure.  The code is also getting refactored today in the master branch... look for the addition of a config.h file and a change in handing serial input from using a raw loop to using a millis() timing function so serial input can be mixed with i2c displays.
+
+Based on feedback, I'm adding two types of i2c display:
+
+ - Simple 20x4 character LCD display
+ - Full color 0.96" OLED display
+ 
+I am adding optional support for a 1-button (long-press menu, short press select ) and 5-button input matrix ( up,down,left,right,OK )   Expect this to be implemented somewhere around build v1.80.  
+
 Feb 22, 2019
 
 Since I started this project, the primary registers with "interesting data" for battery diagnostics were the ones that contained information such as cell group voltage, the four temperature sensors, and information such as the battery revision and serial number.
