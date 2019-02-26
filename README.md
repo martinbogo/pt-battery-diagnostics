@@ -27,6 +27,7 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+<<<<<<< HEAD
 Feb 25, 2019
 
 I'm going to organize the directory structure a little better today and add my lab notes into a separate "docs" directory with notes on the register functions and packet structure.  The code is also getting refactored today in the master branch... look for the addition of a config.h file and a change in handing serial input from using a raw loop to using a millis() timing function so serial input can be mixed with i2c displays.
@@ -185,6 +186,11 @@ Serial number are the bytes stored in 0x15-0x20 [ C01061400098 in the data below
 00100111 00100100 10101110 27 24 AE
 11010100 00100101 00000000 D4 25 0
 ```
+=======
+Feb 19, 2019
+
+On request of krex4, I am adding an i2c_display branch, with support for a four line backlit i2c display available on Amazon.com ( and other vendors such as AliExpress/BangGood, eBay, etc )   Once the display code is stable, I will merge it back into the master code branch.  
+>>>>>>> c1f480311c956d9ec8bed34d76ceccb4271bf063
 
 Feb 5, 2019
 
