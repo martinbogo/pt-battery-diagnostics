@@ -2,13 +2,7 @@
    Segway Battery Diagnostics
    by Martin Bogomolni <martinbogo@gmail.com>
 
-
-   Created 15 Jan, 2019
-   Updated 20 Feb, 2019
-
-   v 1.55
-
-   This code is copyright 2019, and under the MIT License
+   This code is originally copyright 2019, and under the MIT License
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -29,26 +23,15 @@
    SOFTWARE.
 */
 
-#include <Wire.h>
+#define VERSION "1.57"
 
-//#define I2C_DISPLAY
-/* If you want to use an LCD I2C display, make sure you have the
-   LiquidCrystal_I2C library installed and enabled in your Arduino
-   installation
-*/
-#ifdef I2C_DISPLAY
-#include <LiquidCrystal_I2C.h>
-#define DISPADDR 0x27
-#define DISPCOLS 20
-#define DISPROWS 4
-LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
-#endif
+#include <Wire.h>
 
 typedef struct {
   unsigned char chk;
   unsigned char msb;
   unsigned char lsb;
-  unsigned char mod;
+  unsigned char ok;
 } PACKET;
 
 typedef struct {
@@ -62,11 +45,35 @@ typedef struct {
 } CGROUP;
 
 typedef struct {
-  unsigned char chk;
-  unsigned char msb;
-  unsigned char lsb;
-} UNK;
+  unsigned char chk : 8;
+  unsigned char msb : 8;
+  unsigned char lsb : 8;
+} DEFPACKET;
 
+#define I2C_DISPLAY
+/* If you want to use an LCD I2C display, make sure you have the
+   LiquidCrystal_I2C library installed and enabled in your Arduino
+   installation
+*/
+#ifdef I2C_DISPLAY
+#include <LiquidCrystal_I2C.h>
+#include "char.h"
+#define DISPADDR 0x27
+#define DISPCOLS 20
+#define DISPROWS 4
+
+LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
+
+struct displaymsg {
+  char line1[20];
+  char line2[20];
+  char line3[20];
+  char line4[20];
+};
+
+struct displaymsg i2cdisplay;
+int spinstate;
+#endif
 
 // For Lithium Segway Batteries uncomment these lines
 #define TYPE 0x31
@@ -86,30 +93,61 @@ typedef struct {
 
    Currently unidentified registers
 
+   0x6
    0xC 0xCC is unknown but may contain battery status information
 
 */
 
 String serialnum;
+long i2cDisplayRenderMillis;
+long menuMillis;
+long blinkMillis;
+long i2cDisplayRenderInterval = 100;
+long i2cDisplayBlinkInterval = 250;
+long menuInterval = 200;
 
 TEMP_SENSOR tempsensor[TSENSORS];
 CGROUP cgroup[CELLGROUPS];
-UNK unknown[31];
+DEFPACKET dpacket[31];
+
+int refreshDisplay;
 
 void setup() {
   Wire.begin();        // join i2c bus (address optional for master)
-  Serial.begin(9600);  // start serial for output
+  Serial.begin(115200);  // start serial for output
+#ifdef I2C_DISPLAY
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+#endif
+  introMessage();
+  showMenu();
 }
 
 void loop() {
-  introMessage();
-  while (1) {
-    doMenu();
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - menuMillis > menuInterval ) {
+    menuMillis = currentMillis;
+    doMenuInput();
   }
+
+#ifdef I2C_DISPLAY
+  if (currentMillis - i2cDisplayRenderMillis > i2cDisplayRenderInterval ) {
+    i2cDisplayRenderMillis = currentMillis;
+    updateDisplay();
+  }
+
+  if (currentMillis - blinkMillis > i2cDisplayBlinkInterval ) {
+    blinkMillis = currentMillis;
+    doBlink();
+  }
+#endif  
+
 }
 
 int readPacket(int regval, PACKET &packet) {
-  unsigned char mod;
+  unsigned char ok;
   unsigned char chk;
   unsigned char msb;
   unsigned char lsb;
@@ -121,7 +159,7 @@ int readPacket(int regval, PACKET &packet) {
     Serial.print("I2C communication failed with error: [");
     Serial.print(result, DEC);
     Serial.println("]");
-    packet.mod = 0xff;
+    packet.ok = 0xff;
     packet.msb = 0xff;
     packet.lsb = 0xff;
     packet.chk = 0xff;
@@ -133,7 +171,11 @@ int readPacket(int regval, PACKET &packet) {
     packet.chk = Wire.read();
     packet.msb = Wire.read();
     packet.lsb = Wire.read();
-    packet.mod = (packet.chk + packet.msb + packet.lsb) % 8;
+    packet.ok = (packet.chk + packet.msb + packet.lsb);
+    Serial.print("DEBUG :");
+    Serial.print(packet.ok, DEC);
+    Serial.print(", ");
+    Serial.println(packet.ok % 8, DEC);
   }
 }
 
@@ -212,7 +254,7 @@ void readVoltages(void) {
     if ( result == -1 ) {
       return;
     }
-    if ( temppacket.mod == 0xff ) {
+    if ( temppacket.ok == 0xff ) {
       Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
       return;
     }
@@ -252,18 +294,18 @@ void readUnknown(void) {
     if ( result == -1 ) {
       return;
     }
-    if ( temppacket.mod == 0xff ) {
+    if ( temppacket.ok == 0xff ) {
       Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
       return;
     }
     Serial.print("checksum [0x");
-    Serial.print(temppacket.chk,HEX);
+    Serial.print(temppacket.chk, HEX);
     Serial.print("] ");
     Serial.print("msb [0x");
-    Serial.print(temppacket.msb,HEX);
+    Serial.print(temppacket.msb, HEX);
     Serial.print("] ");
     Serial.print("lsb [0x");
-    Serial.print(temppacket.lsb,HEX);
+    Serial.print(temppacket.lsb, HEX);
     Serial.print("] ");
     Serial.print("ASCII [");
     Serial.write(temppacket.lsb);
@@ -271,7 +313,81 @@ void readUnknown(void) {
   }
 }
 
+void readEveryRegister(void) {
+  PACKET temppacket;
+  int number;
+  float packvoltage = 0;
+  int result;
+  char buf[3];
+
+  for (int itor = 0; itor <= 0xFF; itor++) {
+    // do it 4 times, just to check a theory
+    for (int ytor = 0; ytor < 37; ytor++) {
+      memset(&temppacket, 0, sizeof(temppacket));
+      result = readPacket(itor, temppacket); // 0xC and 0xCC are mirrored registers with unknown data
+      if ( result == -1 ) {
+        Serial.print("Packet: ");
+        Serial.print(itor, HEX);
+        Serial.println(", PACKET ERROR");
+#ifdef I2C_DISPLAY
+        memset(i2cdisplay.line1, 0, sizeof(i2cdisplay.line1));
+        memset(i2cdisplay.line2, 0, sizeof(i2cdisplay.line2));
+        memset(i2cdisplay.line3, 0, sizeof(i2cdisplay.line3));
+        memset(i2cdisplay.line4, 0, sizeof(i2cdisplay.line4));
+        strcat(i2cdisplay.line1, "Packet: ");
+        strcat(i2cdisplay.line1, itoa(itor, buf, 3));
+        strcat(i2cdisplay.line1, ", PKT ERR");
+        refreshDisplay = 1;
+#endif
+        return;
+      }
+      if ( temppacket.ok == 0xff ) {
+        Serial.print(itor, HEX);
+        Serial.println(" COMMUNICATION ERROR DETECTED");
+#ifdef I2C_DISPLAY
+        memset(i2cdisplay.line1, 0, sizeof(i2cdisplay.line1));
+        memset(i2cdisplay.line2, 0, sizeof(i2cdisplay.line2));
+        memset(i2cdisplay.line3, 0, sizeof(i2cdisplay.line3));
+        memset(i2cdisplay.line4, 0, sizeof(i2cdisplay.line4));
+        strcat(i2cdisplay.line1, "Packet: ");
+        strcat(i2cdisplay.line1, itoa(itor, buf, 3));
+        strcat(i2cdisplay.line1, ", PKT ERR");
+        refreshDisplay = 1;
+#endif
+        return;
+      }
+      if ( temppacket.msb == 0x0 && temppacket.lsb == 0x2 ) {
+        continue; // no interesting data at this register
+      }
+      Serial.print("address [");
+      Serial.print(itor, DEC);
+      Serial.print("] [0x");
+      Serial.print(itor, HEX);
+      Serial.print("] ");
+      Serial.print("crc ok? [");
+      Serial.print(temppacket.ok, HEX);
+      Serial.print("] ");
+      Serial.print("checksum [0x");
+      Serial.print(temppacket.chk, HEX);
+      Serial.print("] ");
+      Serial.print("msb [0x");
+      Serial.print(temppacket.msb, HEX);
+      Serial.print("] ");
+      Serial.print("lsb [0x");
+      Serial.print(temppacket.lsb, HEX);
+      Serial.print("] ");
+      Serial.print("ASCII [");
+      Serial.write(temppacket.lsb);
+      Serial.println("]");
+    }
+  }
+}
 void introMessage(void) {
+#ifdef I2C_DISPLAY
+  strcpy(i2cdisplay.line1,"Segway Battery Diag");
+  strcpy(i2cdisplay.line2,"V ");
+  strcat(i2cdisplay.line2,VERSION);
+#endif
   Serial.println("Segway Battery Diagnostics");
   Serial.println("(C) 2019 Martin Bogomolni <martinbogo@gmail.com>");
   Serial.println("MIT License");
@@ -287,29 +403,36 @@ void introMessage(void) {
   Serial.println("");
 }
 
-void doMenu(void) {
+void doMenuInput(void) {
+  if (Serial.available() > 0) {
+    int inByte = Serial.read();
+    switch (inByte) {
+      case 'V': readVoltages(); break;
+      case 'v': readVoltages(); break;
+      case 'T': readTemps(); break;
+      case 't': readTemps(); break;
+      case 'S': readSerialNumber(); break;
+      case 's': readSerialNumber(); break;
+      case 'U': readUnknown(); break;
+      case 'u': readUnknown(); break;
+      case 'R': readEveryRegister(); break;
+      case 'r': readEveryRegister(); break;
+      case 'H': showMenu(); break;
+      case 'h': showMenu(); break;
+      default: return;
+    }
+  }
+}
+
+void showMenu(void) {
   Serial.println("V) Read raw cell group voltages");
   Serial.println("T) Read temperature sensors");
   Serial.println("S) Read serial number");
   Serial.println("U) Read unknown data from register 0xC/0xCC");
+  Serial.println("R) Read all registers once");
+  Serial.println("H) Help! Show this menu");
   Serial.println("");
   Serial.println("Press key to select menu item:");
-  for (;;) {
-    if (Serial.available() > 0) {
-      int inByte = Serial.read();
-      switch (inByte) {
-        case 'V': readVoltages(); break;
-        case 'v': readVoltages(); break;
-        case 'T': readTemps(); break;
-        case 't': readTemps(); break;
-        case 'S': readSerialNumber(); break;
-        case 's': readSerialNumber(); break;
-        case 'U': readUnknown(); break;
-        case 'u': readUnknown(); break;
-        default: continue;
-      }
-    }
-  }
 }
 
 void printBits(byte myByte) {
@@ -320,3 +443,76 @@ void printBits(byte myByte) {
       Serial.print('0');
   }
 }
+
+#ifdef I2C_DISPLAY
+void doBlink(void) {
+  switch (spinstate) {
+    case 0:
+      lcd.createChar(0,batt0);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+    case 1:
+      lcd.createChar(0,batt1);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+    case 2:
+      lcd.createChar(0,batt2);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+    case 3:
+      lcd.createChar(0,batt3);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+    case 4:
+      lcd.createChar(0,batt4);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+    case 5:
+      lcd.createChar(0,batt5);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+     case 6:
+      lcd.createChar(0,batt6);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate++;
+      break;
+    case 7:
+      lcd.createChar(0,batt7);
+      lcd.setCursor(19,3);
+      lcd.write(byte(0));
+      spinstate=0;
+      break;
+    default:
+      spinstate=0;
+      break;
+  }
+}
+
+void updateDisplay(void) {
+  if (refreshDisplay) {
+    lcd.clear();
+    refreshDisplay = 0;
+  }
+  lcd.setCursor(0, 0);
+  lcd.print(i2cdisplay.line1);
+  lcd.setCursor(0, 1);
+  lcd.print(i2cdisplay.line2);
+  lcd.setCursor(0, 2);
+  lcd.print(i2cdisplay.line3);
+  lcd.setCursor(0, 3);
+  lcd.print(i2cdisplay.line4);
+}
+#endif
