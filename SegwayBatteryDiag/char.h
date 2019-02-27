@@ -1,4 +1,4 @@
-const byte batt0[8] = {
+PROGMEM byte batt0[8] = {
   0x1B,
   0x11,
   0x00,
@@ -9,7 +9,7 @@ const byte batt0[8] = {
   0x0E
 };
 
-const byte batt1[8] = {
+PROGMEM byte batt1[8] = {
   0x11,
   0x00,
   0x00,
@@ -20,7 +20,7 @@ const byte batt1[8] = {
   0x1B
 };
 
-const byte batt2[8] = {
+PROGMEM byte batt2[8] = {
   0x00,
   0x00,
   0x00,
@@ -31,7 +31,7 @@ const byte batt2[8] = {
   0x11
 };
 
-const byte batt3[8] = {
+PROGMEM byte batt3[8] = {
   0x00,
   0x00,
   0x00,
@@ -42,7 +42,7 @@ const byte batt3[8] = {
   0x00
 };
 
-const byte batt4[8] = {
+PROGMEM byte batt4[8] = {
   0x00,
   0x00,
   0x04,
@@ -53,7 +53,7 @@ const byte batt4[8] = {
   0x00
 };
 
-const byte batt5[8] = {
+PROGMEM byte batt5[8] = {
   0x00,
   0x04,
   0x0E,
@@ -64,7 +64,7 @@ const byte batt5[8] = {
   0x00
 };
 
-const byte batt6[8] = {
+PROGMEM byte batt6[8] = {
   0x04,
   0x0E,
   0x1B,
@@ -75,7 +75,7 @@ const byte batt6[8] = {
   0x00
 };
 
-const byte batt7[8] = {
+PROGMEM byte batt7[8] = {
   0x0E,
   0x1B,
   0x11,
