@@ -27,6 +27,21 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+Feb 27, 2019
+
+I had an "AHA!" moment today as I was working on decoding some other registers in the Segway battery pack.  I got the algorithm for the checksum wrong, but only slightly so.
+
+To calculate the checksum:
+
+Sum the __REGISTER__ + Checksum byte + Most Significant Byte + Least Significant Byte + __1__
+
+e.g.) When you are reading from register 3:
+
+  - 3 + 121 + 0 + 3 + 1 = 128 mod 128 = 0
+
+It's as easy as that.
+
+
 Feb 25, 2019
 
 I'm going to organize the directory structure a little better today and add my lab notes into a separate "docs" directory with notes on the register functions and packet structure.  The code is also getting refactored today in the master branch... look for the addition of a config.h file and a change in handing serial input from using a raw loop to using a millis() timing function so serial input can be mixed with i2c displays.
@@ -37,6 +52,7 @@ Based on feedback, I'm adding two types of i2c display:
  - Full color 0.96" OLED display
  
 I am adding optional support for a 1-button (long-press menu, short press select ) and 5-button input matrix ( up,down,left,right,OK )   Expect this to be implemented somewhere around build v1.80.  
+
 
 Feb 22, 2019
 
@@ -118,6 +134,7 @@ checksum [0x82] msb [0x1C] lsb [0x55] ASCII [U]
 checksum [0xD5] msb [0x1D] lsb [0x81] ASCII [⸮]
 checksum [0xDC] msb [0x1E] lsb [0xF9] ASCII [⸮]
 ```
+
 
 Feb 21, 2019
 
