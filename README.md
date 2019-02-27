@@ -138,20 +138,22 @@ checksum [0xDC] msb [0x1E] lsb [0xF9] ASCII [⸮]
 
 Feb 21, 2019
 
-The serial number has been located! The checksum algorithm has been decoded!  Here's the quick summary:
+The serial number has been located! ~~The checksum algorithm has been decoded!~~  Here's the quick summary:
 
 For registers that are read as triplets ( temp / voltage / serial number ) a 3-byte packet is read in the following order:
 
 [checkum] [ most significant byte ] [ least significant byte ]
 
-In order to make sure the packet was transmitted properly, the checksum algorithm is simple -- add the three values up, and take the modulus 8 of the sum.  If the value is equal to 1, the packet is valid.
+~~In order to make sure the packet was transmitted properly, the checksum algorithm is simple -- add the three values up, and take the modulus 8 of the sum.  If the value is equal to 1, the packet is valid.~~
 
-i.e.: 
+~~i.e.: ~~
 
-[ 2D ] + [ 1C ] + [ 30 ] = 0x79
-0x79 & 8 = 1
+~~[ 2D ] + [ 1C ] + [ 30 ] = 0x79~~
+~~0x79 & 8 = 1~~
 
-The packet is valid and was transmitted properly.   
+~~The packet is valid and was transmitted properly.~~
+
+__NOTE__ **See my update on Feb 27th!  The correct algorithm to decode the checksum is there**
 
 I am rewriting the code with a generic packet reader, which will check for i2c bus errors and the CRC, then return a PACKET struct containing the calculated checksum, and the three bytes ( everything reads 0xFF if there was an error )
 
