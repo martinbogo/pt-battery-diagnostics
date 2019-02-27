@@ -37,9 +37,11 @@ To calculate the checksum:
 
 Sum the __REGISTER__ + Checksum byte + Most Significant Byte + Least Significant Byte + __1__
 
+Then check against modulus 64
+
 e.g.) When you are reading from register 3:
 
-  - 3 + 121 + 0 + 3 + 1 = 128 mod 128 = 0
+  - 3 + 121 + 0 + 3 + 1 = 128 mod 64 = 0
 
 It's as easy as that.
 
