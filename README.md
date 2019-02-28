@@ -29,6 +29,10 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+Feb 28, 2019
+
+Average pack temperature register has been identified -- it's 149/0x95 and follows the same format as the other temp sensor data of 12 bits from MSB->LSB scaled from -256C to +256C
+
 Feb 27, 2019
 
 I had an "AHA!" moment today as I was working on decoding some other registers in the Segway battery pack.  I got the algorithm for the checksum wrong, but only slightly so.
