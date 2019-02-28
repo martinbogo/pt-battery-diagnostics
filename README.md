@@ -27,7 +27,6 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
-<<<<<<< HEAD
 Feb 25, 2019
 
 I'm going to organize the directory structure a little better today and add my lab notes into a separate "docs" directory with notes on the register functions and packet structure.  The code is also getting refactored today in the master branch... look for the addition of a config.h file and a change in handing serial input from using a raw loop to using a millis() timing function so serial input can be mixed with i2c displays.
