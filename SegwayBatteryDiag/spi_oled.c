@@ -1,9 +1,9 @@
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SPI_OLED_DISPLAY
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1331.h>
-#include <SPI.h>
-#include "spi_oled.h"
 
 Adafruit_SSD1331 display = Adafruit_SSD1331(cs, dc, rst);
 
@@ -50,4 +50,8 @@ void lcdTestPattern()
   }
   display.endWrite();
 }
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
 #endif

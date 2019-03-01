@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef I2C_LCD_DISPLAY
 
 #define DISPADDR 0x27
@@ -11,4 +15,11 @@ struct displaymsg {
   char *line4;
 };
 
+void doBlink();
+void updateDisplay();
+
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
 #endif

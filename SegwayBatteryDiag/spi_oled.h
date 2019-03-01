@@ -1,5 +1,13 @@
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef SPI_OLED_DISPLAY
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1331.h>
+#include <SPI.h>
 
 // You can use any (4 or) 5 pins 
 #define sclk 13
@@ -28,9 +36,12 @@ struct displaymsg {
 int refreshdisplay;
 struct displaymsg oleddisplay;
 
-
 void initDisplay();
 void updateDisplay();
 void lcdTestPattern();
 
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
 #endif

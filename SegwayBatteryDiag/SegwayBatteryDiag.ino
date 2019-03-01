@@ -28,11 +28,7 @@
 
 #include <Wire.h>
 #include "config.h"
-
-#ifdef I2C_LCD_DISPLAY
 #include "i2c_lcd.h"
-#endif
-
 #include "spi_oled.h"
 
 typedef struct {
@@ -80,7 +76,7 @@ long DisplayRenderMillis;
 long menuMillis;
 long blinkMillis;
 long DisplayRenderInterval = 100;
-long DisplayBlinkInterval = 250;
+long DisplayBlinkInterval = 5000 ;
 long menuInterval = 200;
 int refreshDisplay = 0;
 
@@ -110,12 +106,16 @@ void loop() {
     DisplayRenderMillis = currentMillis;
     updateDisplay();
   }
+#endif
 
   if (currentMillis - blinkMillis > DisplayBlinkInterval ) {
     blinkMillis = currentMillis;
+    blinkLed();
+#ifdef I2C_LCD_DISPLAY
     doBlink();
-  }
 #endif
+  }
+
 
 #ifdef SPI_OLED__DISPLAY
   if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
@@ -136,7 +136,7 @@ int readPacket(int regval, PACKET &packet) {
   unsigned char msb;
   unsigned char lsb;
 
-  memset(&packet,0,sizeof(packet));
+  memset(&packet, 0, sizeof(packet));
   Wire.beginTransmission(TYPE);
   Wire.write(regval);
   int result = Wire.endTransmission();
@@ -195,7 +195,7 @@ int readSerialNumber() {
       return 1;
     }
     if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
-#ifdef SERIAL_DISPLAY      
+#ifdef SERIAL_DISPLAY
       Serial.println("I2C ERR");
 #endif
       return 1;
@@ -203,7 +203,7 @@ int readSerialNumber() {
     if ( temppacket.sum != 0 ) {
 #ifdef SERIAL_DISPLAY
       Serial.println("PACKET CHECKSUM INVALID");
-#endif      
+#endif
       return 1;
     }
     memcpy(&packet[temppacket.msb], &temppacket, sizeof(temppacket));
@@ -217,11 +217,11 @@ int readSerialNumber() {
     rev[itor] = packet[itor + 12].lsb;
   }
 
-  memset(serialnumber,0,sizeof(serialnumber));
-  memset(revision,0,sizeof(revision));
-  memcpy(serialnumber,serial,12);
-  memcpy(revision,rev,2);
-  
+  memset(serialnumber, 0, sizeof(serialnumber));
+  memset(revision, 0, sizeof(revision));
+  memcpy(serialnumber, serial, 12);
+  memcpy(revision, rev, 2);
+
 #ifdef SERIAL_DISPLAY
   Serial.print("Serial Number: ");
   Serial.print(serialnumber);
@@ -235,6 +235,7 @@ int readSerialNumber() {
 void readTemps(void) {
   PACKET temppacket;
   int result;
+  int avgtemp;
   for (int i = 0; i < TSENSORS; i++) {
     result = readPacket(0x17, temppacket); // 0x17 contains temperature data
     if ( result != 0 ) {
@@ -249,7 +250,7 @@ void readTemps(void) {
     if ( temppacket.sum != 0 ) {
 #ifdef SERIAL_DISPLAY
       Serial.println("PACKET CHECKSUM INVALID");
-#endif      
+#endif
       return;
     }
     tempsensor[i].temp = word(temppacket.msb, temppacket.lsb) & 0xFFF; // mask off 12 bits ADC
@@ -259,6 +260,15 @@ void readTemps(void) {
     Serial.println(ctemp);
 #endif
   }
+
+  memset(&temppacket, 0, sizeof(temppacket));
+  result = readPacket(0x55, temppacket); // 85/0x55 149/0x95 contains pack average temp
+  avgtemp = word(temppacket.msb, temppacket.lsb) & 0xFFF; // mask off 12 bits ADC
+  float atemp = avgtemp * 0.0625; // Sensor -256C to +256C scaled by 4096
+#ifdef SERIAL_DISPLAY
+  Serial.print("Average Pack Temperature in deg C: ");
+  Serial.println(atemp);
+#endif
 }
 
 void readVoltages(void) {
@@ -281,7 +291,7 @@ void readVoltages(void) {
     if ( temppacket.sum != 0 ) {
 #ifdef SERIAL_DISPLAY
       Serial.println("PACKET CHECKSUM INVALID");
-#endif      
+#endif
       return;
     }
     number = word(temppacket.msb, temppacket.lsb) >> 11; // top 5 bits are cell group
@@ -313,7 +323,7 @@ void readUnknown() {
   PACKET temppacket;
   int result;
 
-  memset(&temppacket,0,sizeof(temppacket));
+  memset(&temppacket, 0, sizeof(temppacket));
   for (int itor = 0; itor < 0x1F; itor++) {
     result = readPacket(0xC, temppacket); // 0xC and 0xCC are mirrored registers with unknown data
     if ( result != 0 ) {
@@ -328,19 +338,19 @@ void readUnknown() {
     if ( temppacket.sum != 0 ) {
 #ifdef SERIAL_DISPLAY
       Serial.println("PACKET CHECKSUM INVALID");
-#endif      
+#endif
       return;
     }
 #ifdef SERIAL_DISPLAY
     Serial.print("msb [");
     printBits(temppacket.msb);
     Serial.print(" ");
-    Serial.print(temppacket.msb,DEC);
+    Serial.print(temppacket.msb, DEC);
     Serial.print("] ");
     Serial.print("lsb [");
     printBits(temppacket.lsb);
     Serial.print(" ");
-    Serial.print(temppacket.lsb,DEC);
+    Serial.print(temppacket.lsb, DEC);
     Serial.print("] ");
     Serial.print("ASCII [");
     Serial.write(temppacket.lsb);
@@ -357,35 +367,41 @@ void readEveryRegister(void) {
   char buf[3];
 
   for (int itor = 0; itor <= 0xFF; itor++) {
-    memset(&temppacket, 0, sizeof(temppacket));
-    result = readPacket(itor, temppacket);
-    if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+    for (int ytor = 0; ytor < 5; ytor++ ) {
+      memset(&temppacket, 0, sizeof(temppacket));
+      result = readPacket(itor, temppacket);
+      if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
 #ifdef SERIAL_DISPLAY
-      Serial.print("Register: ");
+        Serial.print("Register: ");
+        Serial.print(itor, DEC);
+        Serial.println("I2C ERR");
+#endif
+        continue;
+      }
+      if ( temppacket.msb == 0x0 && temppacket.lsb == 0x2 ) {
+        continue; // no interesting data at this register
+      }
+#ifdef SERIAL_DISPLAY
+      Serial.print("address [");
       Serial.print(itor, DEC);
-      Serial.println("I2C ERR");
+      Serial.print(":0x");
+      Serial.print(itor, HEX);
+      Serial.print("] ");
+      Serial.print("msb [");
+      printBits(temppacket.msb);
+      Serial.print(" ");
+      Serial.print(temppacket.msb, DEC);
+      Serial.print("] ");
+      Serial.print("lsb [");
+      printBits(temppacket.lsb);
+      Serial.print(" ");
+      Serial.print(temppacket.lsb, DEC);
+      Serial.print("] ");
+      Serial.print("ASCII [");
+      Serial.write(temppacket.lsb);
+      Serial.println("]");
 #endif
-      continue;
     }
-    if ( temppacket.msb == 0x0 && temppacket.lsb == 0x2 ) {
-      continue; // no interesting data at this register
-    }
-#ifdef SERIAL_DISPLAY
-    Serial.print("address [");
-    Serial.print(itor, DEC);
-    Serial.print(":0x");
-    Serial.print(itor, HEX);
-    Serial.print("] ");
-    Serial.print("msb [");
-    Serial.print(temppacket.msb, DEC);
-    Serial.print("] ");
-    Serial.print("lsb [");
-    Serial.print(temppacket.lsb, DEC);
-    Serial.print("] ");
-    Serial.print("ASCII [");
-    Serial.write(temppacket.lsb);
-    Serial.println("]");
-#endif
   }
 }
 
@@ -421,6 +437,30 @@ void introMessage() {
 #endif
 }
 
+void blinkLed() {
+  pinMode(13, LED_BUILTIN);
+  for ( int i = 0; i < 3; i++  ) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(50);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(50);
+  }
+}
+
+void showMenu(void) {
+#ifdef SERIAL_DISPLAY
+  Serial.println("V) Read raw cell group voltages");
+  Serial.println("T) Read temperature sensors");
+  Serial.println("S) Read serial number");
+  Serial.println("U) Read data from register 0xC/0xCC");
+  Serial.println("R) Read all registers once");
+  Serial.println("H) Help! Show this menu");
+  Serial.println("");
+  Serial.println("Press key to select menu item:");
+#endif
+}
+
+#ifdef SERIAL_DISPLAY
 void doMenuInput(void) {
   if (Serial.available() > 0) {
     int inByte = Serial.read();
@@ -442,18 +482,6 @@ void doMenuInput(void) {
   }
 }
 
-void showMenu(void) {
-  Serial.println("V) Read raw cell group voltages");
-  Serial.println("T) Read temperature sensors");
-  Serial.println("S) Read serial number");
-  Serial.println("U) Read data from register 0xC/0xCC");
-  Serial.println("R) Read all registers once");
-  Serial.println("H) Help! Show this menu");
-  Serial.println("");
-  Serial.println("Press key to select menu item:");
-}
-
-#ifdef SERIAL_DISPLAY
 void printBits(byte myByte) {
   for (byte mask = 0x80; mask; mask >>= 1) {
     if (mask  & myByte)
