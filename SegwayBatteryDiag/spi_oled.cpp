@@ -1,32 +1,33 @@
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "config.h"
 
 #ifdef SPI_OLED_DISPLAY
+#include "spi_oled.h"
+
+struct displaymsg oledmsg;
+int refreshdisplay;
 
 Adafruit_SSD1331 display = Adafruit_SSD1331(cs, dc, rst);
 
-int refreshdisplay;
-struct displaymsg oleddisplay;
-
 void initDisplay() {
   display.begin();
+  display.fillScreen(WHITE);
+}
+
+void clearDisplay() {
+  display.fillScreen(BLACK);
 }
 
 void updateDisplay() {
-  if (refreshdisplay) {
-    display.fillScreen(BLACK);
-    refreshdisplay = 0;
-  }
+  strcpy(oledmsg.line1,"hello");
   display.setCursor(0, 0);
-  display.print(oleddisplay.line1);
+  display.print(oledmsg.line1);
   display.setCursor(0, 9);
-  display.print(oleddisplay.line2);
+  display.print(oledmsg.line2);
   display.setCursor(0, 18);
-  display.print(oleddisplay.line3);
+  display.print(oledmsg.line3);
   display.setCursor(0, 27);
-  display.print(oleddisplay.line4);
+  display.print(oledmsg.line4);
 }
 
 void lcdTestPattern()
@@ -50,8 +51,5 @@ void lcdTestPattern()
   }
   display.endWrite();
 }
-#endif
 
-#ifdef __cplusplus
-} // extern "C"
 #endif

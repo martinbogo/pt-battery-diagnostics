@@ -1,15 +1,9 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+#include "config.h"
 
 #ifdef I2C_LCDDISPLAY
 #include <LiquidCrystal_I2C.h>
 #include "char.h"
-
-LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
-
-struct displaymsg i2cdisplay;
-int spinstate;
 
 void doBlink() {
   switch (spinstate) {
@@ -82,8 +76,4 @@ void updateDisplay(void) {
   lcd.print(i2cdisplay.line4);
 }
 
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif

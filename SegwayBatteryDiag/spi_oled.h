@@ -1,9 +1,6 @@
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef SPI_OLED_DISPLAY
+#ifndef SPI_OLED_H
+#define SPI_OLED_H
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1331.h>
@@ -33,15 +30,9 @@ struct displaymsg {
   char *line4;
 };
 
-int refreshdisplay;
-struct displaymsg oleddisplay;
-
 void initDisplay();
 void updateDisplay();
 void lcdTestPattern();
+void clearDisplay();
 
-#endif
-
-#ifdef __cplusplus
-} // extern "C"
 #endif

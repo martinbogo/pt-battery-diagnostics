@@ -28,8 +28,14 @@
 
 #include <Wire.h>
 #include "config.h"
+
+#ifdef I2C_LCD_DISPLAY
 #include "i2c_lcd.h"
+#endif
+
+#ifdef SPI_OLED_DISPLAY
 #include "spi_oled.h"
+#endif
 
 typedef struct {
   unsigned char chk;
@@ -78,20 +84,25 @@ long blinkMillis;
 long DisplayRenderInterval = 100;
 long DisplayBlinkInterval = 5000 ;
 long menuInterval = 200;
-int refreshDisplay = 0;
 
 TEMP_SENSOR tempsensor[TSENSORS];
 CGROUP cgroup[CELLGROUPS];
 DEFPACKET dpacket[31];
 
 void setup() {
+  // By using the Wire library, the internal pullup resistors are automatically engaged
   Wire.begin();        // join i2c bus (address optional for master)
-  Serial.begin(115200);  // start serial for output
+  Wire.setClock(400000);
+  Serial.begin(9600);  // start serial for output
+#ifdef SPI_OLED_DISPLAY
+  initDisplay();
+#endif
   introMessage();
   showMenu();
 }
 
 void loop() {
+  
   unsigned long currentMillis = millis();
 
 #ifdef SERIAL_DISPLAY
@@ -101,33 +112,17 @@ void loop() {
   }
 #endif
 
-#ifdef I2C_LCD_DISPLAY
+#ifdef SPI_OLED__DISPLAY
   if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
     DisplayRenderMillis = currentMillis;
+    clearDisplay();
     updateDisplay();
   }
 #endif
 
   if (currentMillis - blinkMillis > DisplayBlinkInterval ) {
     blinkMillis = currentMillis;
-    blinkLed();
-#ifdef I2C_LCD_DISPLAY
-    doBlink();
-#endif
   }
-
-
-#ifdef SPI_OLED__DISPLAY
-  if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
-    DisplayRenderMillis = currentMillis;
-    updateDisplay();
-  }
-
-  if (currentMillis - ClockMillis > ClockRenderInterval ) {
-    ClockMillis = currentMillis;
-
-  }
-#endif
 }
 
 int readPacket(int regval, PACKET &packet) {
@@ -410,14 +405,12 @@ void introMessage() {
   strcpy(i2cdisplay.line1, "Seg Batt Diag");
   strcpy(i2cdisplay.line2, "V ");
   strcat(i2cdisplay.line2, VERSION);
-  refreshdisplay = 1;
   updateDisplay();
 #endif
 #ifdef SPI_OLED_DISPLAY
-  strcpy(oleddisplay.line1, "Seg Batt Diag");
-  strcpy(oleddisplay.line2, "V ");
-  strcat(oleddisplay.line2, VERSION);
-  refreshdisplay = 1;
+  //strcpy(oleddisplay.line1, "Seg Batt Diag");
+  //strcpy(oleddisplay.line2, "V ");
+  //strcat(oleddisplay.line2, VERSION);
   updateDisplay();
 #endif
 #ifdef SERIAL_DISPLAY
@@ -464,6 +457,8 @@ void showMenu(void) {
 void doMenuInput(void) {
   if (Serial.available() > 0) {
     int inByte = Serial.read();
+    Serial.write(inByte);
+    Serial.println(".");
     switch (inByte) {
       case 'V': readVoltages(); break;
       case 'v': readVoltages(); break;

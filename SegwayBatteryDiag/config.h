@@ -11,7 +11,7 @@
  */
 
 // If you want Serial menu and debug, uncomment this
-//#define SERIAL_DISPLAY
+#define SERIAL_DISPLAY
 
 /* If you want to use an LCD I2C display, make sure you have the
  * LiquidCrystal_I2C library installed and enabled in your Arduino
@@ -26,4 +26,4 @@
  * Library. You may need to adjust the code if you are using a
  * different display.
  */
-#define SPI_OLED_DISPLAY // uncomment if you are using an SPI OLED display
+//#define SPI_OLED_DISPLAY // uncomment if you are using an SPI OLED display
