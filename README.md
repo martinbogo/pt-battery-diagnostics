@@ -37,6 +37,8 @@ Battery State of Charge ( Total percentage of charge ) is an 8-bit field located
 
 Battery charge current is located at 0xD4 ( decimal 212 ) .. divide the value by 0.128 to get actual amperage. 
 
+Development brank is currently the i2c_display branch.  I'll be merging in the changes to master in the next week.
+
 Feb 28, 2019
 
 Average pack temperature register has been identified -- it's 149/0x95 and follows the same format as the other temp sensor data of 12 bits from MSB->LSB scaled from -256C to +256C
