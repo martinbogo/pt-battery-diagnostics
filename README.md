@@ -29,6 +29,14 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+Jun 15, 2019
+
+After a short pause, development continues!  With the help of the online community and a friend, we have identified the function of two registers!
+
+Battery State of Charge ( Total percentage of charge ) is an 8-bit field located at 0x1D ( decimal 29 ) 
+
+Battery charge current is located at 0xD4 ( decimal 212 ) .. divide the value by 0.128 to get actual amperage. 
+
 Feb 28, 2019
 
 Average pack temperature register has been identified -- it's 149/0x95 and follows the same format as the other temp sensor data of 12 bits from MSB->LSB scaled from -256C to +256C
