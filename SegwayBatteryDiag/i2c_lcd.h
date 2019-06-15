@@ -1,6 +1,9 @@
 
+#pragma once
 #ifndef I2C_LCD_H
 #define I2C_LCD_H
+
+#include <LiquidCrystal_I2C.h>
 
 #define DISPADDR 0x27
 #define DISPCOLS 20
@@ -13,12 +16,14 @@ struct displaymsg {
   char *line4;
 };
 
-struct displaymsg i2cdisplay;
-int spinstate;
+extern struct displaymsg i2cdisplay;
 
-LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
+extern int spinstate;
+extern int refreshDisplay;
 
-void doBlink();
-void updateDisplay();
+extern void doBlink();
+extern void updateDisplay();
+extern void initDisplay();
+extern void clearDisplay();
 
 #endif

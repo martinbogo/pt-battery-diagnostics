@@ -1,4 +1,5 @@
 
+#pragma once
 #ifndef SPI_OLED_H
 #define SPI_OLED_H
 
@@ -30,9 +31,9 @@ struct displaymsg {
   char *line4;
 };
 
-void initDisplay();
-void updateDisplay();
-void lcdTestPattern();
-void clearDisplay();
+extern void initDisplay();
+extern void updateDisplay();
+extern void lcdTestPattern();
+extern void clearDisplay();
 
 #endif

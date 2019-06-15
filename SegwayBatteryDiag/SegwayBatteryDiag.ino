@@ -24,7 +24,7 @@
    SOFTWARE.
 */
 
-#define VERSION "1.57"
+#define VERSION "1.66"
 
 #include <Wire.h>
 #include "config.h"
@@ -97,6 +97,9 @@ void setup() {
 #ifdef SPI_OLED_DISPLAY
   initDisplay();
 #endif
+#ifdef I2C_LCD_DISPLAY
+  initDisplay();
+#endif
   introMessage();
   showMenu();
 }
@@ -113,6 +116,14 @@ void loop() {
 #endif
 
 #ifdef SPI_OLED__DISPLAY
+  if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
+    DisplayRenderMillis = currentMillis;
+    clearDisplay();
+    updateDisplay();
+  }
+#endif
+
+#ifdef I2C_LCD_DISPLAY
   if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
     DisplayRenderMillis = currentMillis;
     clearDisplay();
@@ -456,10 +467,10 @@ void showMenu(void) {
 #ifdef SERIAL_DISPLAY
 void doMenuInput(void) {
   if (Serial.available() > 0) {
-    int inByte = Serial.read();
-    Serial.write(inByte);
+    int inuint8_t = Serial.read();
+    Serial.write(inuint8_t);
     Serial.println(".");
-    switch (inByte) {
+    switch (inuint8_t) {
       case 'V': readVoltages(); break;
       case 'v': readVoltages(); break;
       case 'T': readTemps(); break;
@@ -477,9 +488,9 @@ void doMenuInput(void) {
   }
 }
 
-void printBits(byte myByte) {
-  for (byte mask = 0x80; mask; mask >>= 1) {
-    if (mask  & myByte)
+void printBits(uint8_t myuint8_t) {
+  for (uint8_t mask = 0x80; mask; mask >>= 1) {
+    if (mask  & myuint8_t)
       Serial.print('1');
     else
       Serial.print('0');

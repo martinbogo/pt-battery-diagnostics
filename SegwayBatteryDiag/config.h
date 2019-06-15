@@ -17,7 +17,7 @@
  * LiquidCrystal_I2C library installed and enabled in your Arduino
  * installation
  */
-//#define I2C_LCD_DISPLAY // uncomment if you are using an I2C LCD display
+#define I2C_LCD_DISPLAY // uncomment if you are using an I2C LCD display
 
 /*
  * If you want to use the 96x64 full color OLED display, make sure

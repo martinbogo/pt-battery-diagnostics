@@ -1,4 +1,6 @@
-PROGMEM byte batt0[8] = {
+
+
+uint8_t batt0[8] = {
   0x1B,
   0x11,
   0x00,
@@ -9,7 +11,7 @@ PROGMEM byte batt0[8] = {
   0x0E
 };
 
-PROGMEM byte batt1[8] = {
+uint8_t batt1[8] = {
   0x11,
   0x00,
   0x00,
@@ -20,7 +22,7 @@ PROGMEM byte batt1[8] = {
   0x1B
 };
 
-PROGMEM byte batt2[8] = {
+uint8_t batt2[8] = {
   0x00,
   0x00,
   0x00,
@@ -31,7 +33,7 @@ PROGMEM byte batt2[8] = {
   0x11
 };
 
-PROGMEM byte batt3[8] = {
+uint8_t batt3[8] = {
   0x00,
   0x00,
   0x00,
@@ -42,7 +44,7 @@ PROGMEM byte batt3[8] = {
   0x00
 };
 
-PROGMEM byte batt4[8] = {
+uint8_t batt4[8] = {
   0x00,
   0x00,
   0x04,
@@ -53,7 +55,7 @@ PROGMEM byte batt4[8] = {
   0x00
 };
 
-PROGMEM byte batt5[8] = {
+uint8_t batt5[8] = {
   0x00,
   0x04,
   0x0E,
@@ -64,7 +66,7 @@ PROGMEM byte batt5[8] = {
   0x00
 };
 
-PROGMEM byte batt6[8] = {
+uint8_t batt6[8] = {
   0x04,
   0x0E,
   0x1B,
@@ -75,7 +77,7 @@ PROGMEM byte batt6[8] = {
   0x00
 };
 
-PROGMEM byte batt7[8] = {
+uint8_t batt7[8] = {
   0x0E,
   0x1B,
   0x11,
