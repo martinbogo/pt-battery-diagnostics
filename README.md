@@ -32,7 +32,8 @@ Nov 8, 2019
 I have refactored the code significantly to do the Serial/LCD/OLED display cleanup.  For now I have this all checked into the i2c_display branch, and will be merging it back to the main branch as soon as I make sure the build is stable on Arduino Mega and Arduino Uno.
 
 Register 29 is the State of Charge. 
-Register 213 is the Ammeter for Charge/Discharge
+
+Register 212 is the Ammeter for Charge/Discharge.
 
 Feb 25, 2019
 
