@@ -314,6 +314,7 @@ void readVoltages(void) {
 
   for (int itor = 0; itor < CELLGROUPS; itor++) {
     float cellvoltage = ( cgroup[itor].voltage * 7.8201 ) / 1000;
+#ifdef SERIAL_SHELL
     Serial.print(" Cell group ");
     Serial.print(itor);
     Serial.print(" voltage is ");
@@ -322,6 +323,7 @@ void readVoltages(void) {
     } else {
       Serial.println("ERROR/INVALID");
     }
+#endif
     if ( cgroup[itor].voltage < 1023 ) {
       packvoltage = packvoltage + cellvoltage;
     }
@@ -330,6 +332,41 @@ void readVoltages(void) {
   Serial.print("Pack voltage: ");
   Serial.print((float)packvoltage);
   Serial.println(" V");
+}
+
+float readStateOfCharge() {
+  float average_soc = 100;
+  PACKET temppacket;
+  int result;
+  int number;
+  float stateofcharge;
+
+  memset(&temppacket, 0, sizeof(temppacket));
+
+  result = readPacket(0x1D, temppacket);
+  if ( result != 0 ) {
+    return 1;
+  }
+  if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+#ifdef SERIAL_SHELL
+    Serial.println("I2C ERR");
+#endif
+    return 1;
+  }
+  if ( temppacket.sum != 0 ) {
+#ifdef SERIAL_SHELL
+    Serial.println("PACKET CHECKSUM INVALID");
+#endif
+    return 1;
+  }
+
+  number = word(temppacket.msb, temppacket.lsb) & 0xFF; // 8 bits of SOC
+  stateofcharge = average_soc / number;
+#ifdef SERIAL_SHELL
+  Serial.print(stateofcharge, 2);
+  Serial.println("% State of Charge");
+#endif
+ return stateofcharge;
 }
 
 void readUnknown() {
