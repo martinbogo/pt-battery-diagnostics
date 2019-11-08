@@ -30,7 +30,10 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 Nov 8, 2019
 
 I have refactored the code significantly to do the Serial/LCD/OLED display cleanup.  For now I have this all checked into the i2c_display branch, and will be merging it back to the main branch as soon as I make sure the build is stable on Arduino Mega and Arduino Uno.
-\
+
+Register 29 is the State of Charge. 
+Register 213 is the Ammeter for Charge/Discharge
+
 Feb 25, 2019
 
 I'm going to organize the directory structure a little better today and add my lab notes into a separate "docs" directory with notes on the register functions and packet structure.  The code is also getting refactored today in the master branch... look for the addition of a config.h file and a change in handing serial input from using a raw loop to using a millis() timing function so serial input can be mixed with i2c displays.
