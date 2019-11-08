@@ -15,6 +15,8 @@ LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
 void initDisplay() {
   lcd.init();
   lcd.backlight();
+  lcd.clear();
+  lcd.home();
 }
 
 void doBlink() {
@@ -73,8 +75,28 @@ void doBlink() {
   }
 }
 
-void updateDisplay(void) {
+void storeLine(int line, char *message) {
+  switch(line) {
+    case 1:
+      strcpy(i2cdisplay.line1, message);
+      break;
+    case 2:
+      strcpy(i2cdisplay.line2, message);
+      break;
+    case 3:
+      strcpy(i2cdisplay.line3, message);
+      break;
+    case 4:
+      strcpy(i2cdisplay.line3, message);
+      break;
+    default:
+      break;
+  }
+}
+
+void updateDisplay() {
   if (refreshDisplay) {
+    lcd.home();
     lcd.clear();
     refreshDisplay = 0;
   }

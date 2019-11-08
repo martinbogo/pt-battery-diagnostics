@@ -24,7 +24,7 @@
    SOFTWARE.
 */
 
-#define VERSION "1.66"
+#define VERSION "1.124"
 
 #include <Wire.h>
 #include "config.h"
@@ -35,6 +35,10 @@
 
 #ifdef SPI_OLED_DISPLAY
 #include "spi_oled.h"
+#endif
+
+#ifdef SERIAL_SHELL
+#include "serial_shell.h"
 #endif
 
 typedef struct {
@@ -69,6 +73,8 @@ char revision[3];
    0x17 0xD7 hold the temperature sensor info in 4 reads
    0x56 0x96 are used for battery group voltage in 23 reads
    0xC6 has the battery revision and serial number in 37 reads
+   0x1D has the battery State of Charge as one byte LSB
+   0xD4 has the battery amperage drain/charge as signed 16 bits ( divide by 0.128 )
 
    Currently unidentified registers
 
@@ -81,8 +87,8 @@ String serialnum;
 long DisplayRenderMillis;
 long menuMillis;
 long blinkMillis;
-long DisplayRenderInterval = 100;
-long DisplayBlinkInterval = 5000 ;
+long DisplayRenderInterval = 1000;
+long DisplayBlinkInterval = 5000;
 long menuInterval = 200;
 
 TEMP_SENSOR tempsensor[TSENSORS];
@@ -93,22 +99,24 @@ void setup() {
   // By using the Wire library, the internal pullup resistors are automatically engaged
   Wire.begin();        // join i2c bus (address optional for master)
   Wire.setClock(400000);
-  Serial.begin(9600);  // start serial for output
+  Serial.begin(115200);  // start serial for output
 #ifdef SPI_OLED_DISPLAY
   initDisplay();
 #endif
 #ifdef I2C_LCD_DISPLAY
   initDisplay();
 #endif
+#ifdef SERIAL_SHELL
   introMessage();
   showMenu();
+#endif
 }
 
 void loop() {
-  
+  // timing loop
   unsigned long currentMillis = millis();
 
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
   if (currentMillis - menuMillis > menuInterval ) {
     menuMillis = currentMillis;
     doMenuInput();
@@ -126,7 +134,6 @@ void loop() {
 #ifdef I2C_LCD_DISPLAY
   if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
     DisplayRenderMillis = currentMillis;
-    clearDisplay();
     updateDisplay();
   }
 #endif
@@ -147,7 +154,7 @@ int readPacket(int regval, PACKET &packet) {
   Wire.write(regval);
   int result = Wire.endTransmission();
   if ( result ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
     Serial.print("I2C communication failed with error: [");
     Serial.print(result, DEC);
     Serial.print("] ");
@@ -201,13 +208,13 @@ int readSerialNumber() {
       return 1;
     }
     if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("I2C ERR");
 #endif
       return 1;
     }
     if ( temppacket.sum != 0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("PACKET CHECKSUM INVALID");
 #endif
       return 1;
@@ -228,7 +235,7 @@ int readSerialNumber() {
   memcpy(serialnumber, serial, 12);
   memcpy(revision, rev, 2);
 
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
   Serial.print("Serial Number: ");
   Serial.print(serialnumber);
   Serial.print(" Rev:");
@@ -248,20 +255,20 @@ void readTemps(void) {
       return;
     }
     if ( temppacket.sum == 0xff ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("I2C ERR");
 #endif
       return;
     }
     if ( temppacket.sum != 0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("PACKET CHECKSUM INVALID");
 #endif
       return;
     }
     tempsensor[i].temp = word(temppacket.msb, temppacket.lsb) & 0xFFF; // mask off 12 bits ADC
     float ctemp = tempsensor[i].temp * 0.0625; // Sensor -256C to +256C scaled by 4096
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
     Serial.print("Temperature in deg C: ");
     Serial.println(ctemp);
 #endif
@@ -271,7 +278,7 @@ void readTemps(void) {
   result = readPacket(0x55, temppacket); // 85/0x55 149/0x95 contains pack average temp
   avgtemp = word(temppacket.msb, temppacket.lsb) & 0xFFF; // mask off 12 bits ADC
   float atemp = avgtemp * 0.0625; // Sensor -256C to +256C scaled by 4096
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
   Serial.print("Average Pack Temperature in deg C: ");
   Serial.println(atemp);
 #endif
@@ -289,13 +296,13 @@ void readVoltages(void) {
       return;
     }
     if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("I2C ERR");
 #endif
       return;
     }
     if ( temppacket.sum != 0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("PACKET CHECKSUM INVALID");
 #endif
       return;
@@ -336,18 +343,18 @@ void readUnknown() {
       return;
     }
     if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("I2C ERR");
 #endif
       return;
     }
     if ( temppacket.sum != 0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.println("PACKET CHECKSUM INVALID");
 #endif
       return;
     }
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
     Serial.print("msb [");
     printBits(temppacket.msb);
     Serial.print(" ");
@@ -377,7 +384,7 @@ void readEveryRegister(void) {
       memset(&temppacket, 0, sizeof(temppacket));
       result = readPacket(itor, temppacket);
       if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
         Serial.print("Register: ");
         Serial.print(itor, DEC);
         Serial.println("I2C ERR");
@@ -387,7 +394,7 @@ void readEveryRegister(void) {
       if ( temppacket.msb == 0x0 && temppacket.lsb == 0x2 ) {
         continue; // no interesting data at this register
       }
-#ifdef SERIAL_DISPLAY
+#ifdef SERIAL_SHELL
       Serial.print("address [");
       Serial.print(itor, DEC);
       Serial.print(":0x");
@@ -412,19 +419,19 @@ void readEveryRegister(void) {
 }
 
 void introMessage() {
+
 #ifdef I2C_LCD_DISPLAY
-  strcpy(i2cdisplay.line1, "Seg Batt Diag");
-  strcpy(i2cdisplay.line2, "V ");
-  strcat(i2cdisplay.line2, VERSION);
+  storeLine(1, "Seg Batt Diag");
+  storeLine(2, "V ");
+  storeLine(3, VERSION);
   updateDisplay();
 #endif
+
 #ifdef SPI_OLED_DISPLAY
-  //strcpy(oleddisplay.line1, "Seg Batt Diag");
-  //strcpy(oleddisplay.line2, "V ");
-  //strcat(oleddisplay.line2, VERSION);
   updateDisplay();
 #endif
-#ifdef SERIAL_DISPLAY
+
+#ifdef SERIAL_SHELL
   Serial.println("Segway Battery Diagnostics");
   Serial.println("(C) 2019 Martin Bogomolni <martinbogo@gmail.com>");
   Serial.println("MIT License");
@@ -440,60 +447,3 @@ void introMessage() {
   Serial.println("");
 #endif
 }
-
-void blinkLed() {
-  pinMode(13, LED_BUILTIN);
-  for ( int i = 0; i < 3; i++  ) {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(50);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(50);
-  }
-}
-
-void showMenu(void) {
-#ifdef SERIAL_DISPLAY
-  Serial.println("V) Read raw cell group voltages");
-  Serial.println("T) Read temperature sensors");
-  Serial.println("S) Read serial number");
-  Serial.println("U) Read data from register 0xC/0xCC");
-  Serial.println("R) Read all registers once");
-  Serial.println("H) Help! Show this menu");
-  Serial.println("");
-  Serial.println("Press key to select menu item:");
-#endif
-}
-
-#ifdef SERIAL_DISPLAY
-void doMenuInput(void) {
-  if (Serial.available() > 0) {
-    int inuint8_t = Serial.read();
-    Serial.write(inuint8_t);
-    Serial.println(".");
-    switch (inuint8_t) {
-      case 'V': readVoltages(); break;
-      case 'v': readVoltages(); break;
-      case 'T': readTemps(); break;
-      case 't': readTemps(); break;
-      case 'S': readSerialNumber(); break;
-      case 's': readSerialNumber(); break;
-      case 'U': readUnknown(); break;
-      case 'u': readUnknown(); break;
-      case 'R': readEveryRegister(); break;
-      case 'r': readEveryRegister(); break;
-      case 'H': showMenu(); break;
-      case 'h': showMenu(); break;
-      default: return;
-    }
-  }
-}
-
-void printBits(uint8_t myuint8_t) {
-  for (uint8_t mask = 0x80; mask; mask >>= 1) {
-    if (mask  & myuint8_t)
-      Serial.print('1');
-    else
-      Serial.print('0');
-  }
-}
-#endif

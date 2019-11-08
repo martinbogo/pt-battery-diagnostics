@@ -10,10 +10,10 @@
 #define DISPROWS 4
 
 struct displaymsg {
-  char *line1;
-  char *line2;
-  char *line3;
-  char *line4;
+  char line1[41];
+  char line2[41];
+  char line3[41];
+  char line4[41];
 };
 
 extern struct displaymsg i2cdisplay;
@@ -25,5 +25,6 @@ extern void doBlink();
 extern void updateDisplay();
 extern void initDisplay();
 extern void clearDisplay();
+extern void storeLine(int, char*);
 
 #endif

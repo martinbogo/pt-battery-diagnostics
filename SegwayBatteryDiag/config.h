@@ -11,13 +11,13 @@
  */
 
 // If you want Serial menu and debug, uncomment this
-#define SERIAL_DISPLAY
+#define SERIAL_SHELL
 
 /* If you want to use an LCD I2C display, make sure you have the
  * LiquidCrystal_I2C library installed and enabled in your Arduino
  * installation
  */
-#define I2C_LCD_DISPLAY // uncomment if you are using an I2C LCD display
+//#define I2C_LCD_DISPLAY // uncomment if you are using an I2C LCD display
 
 /*
  * If you want to use the 96x64 full color OLED display, make sure
