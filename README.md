@@ -19,9 +19,9 @@ I'm working on:
  - A schematic and PCB layout in Eagle format, along with Gerbers and Excellon drill files for an example Arduino shield
  - A schematic and PCB layout in Eagle format for an Arduino Mega & Adafruit 3.5" TFT display + STL to 3D print a case
  - A schematic and PCB layout in Eagle format for a Raspberry Pi + Python code command line diag tool
- - A BOM ( Bill of Materials ) with sources and links to purchase parts 
+ - A BOM ( Bill of Materials ) with sources and links to purchase parts
  - An STL file to 3D print a compatible connector to the Segway battery and instructions on how to assemble and use it safely.
- - If you need a 3D printed battery connector made, I highly recommend the one Rotek designed here on Shapeways.  Well worth supporting his work! https://www.shapeways.com/product/EN759FWRC/segway-battery-conector 
+ - If you need a 3D printed battery connector made, I highly recommend the one Rotek designed here on Shapeways.  Well worth supporting his work! https://www.shapeways.com/product/EN759FWRC/segway-battery-conector
 
 For information, please contact me here on GitHub by creating an issue.  I generally respond within 1-2 days.
 
@@ -29,13 +29,22 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+<<<<<<< HEAD
+Nov 8, 2019
+
+I have refactored the code significantly to do the Serial/LCD/OLED display cleanup.  For now I have this all checked into the i2c_display branch, and will be merging it back to the main branch as soon as I make sure the build is stable on Arduino Mega and Arduino Uno.
+
+Register 29 is the State of Charge.
+
+Register 212 is the Ammeter for Charge/Discharge.
+
 Jun 15, 2019
 
 After a short pause, development continues!  With the help of the online community and a friend, we have identified the function of two registers!
 
-Battery State of Charge ( Total percentage of charge ) is an 8-bit field located at 0x1D ( decimal 29 ) 
+Battery State of Charge ( Total percentage of charge ) is an 8-bit field located at 0x1D ( decimal 29 )
 
-Battery charge current is located at 0xD4 ( decimal 212 ) .. divide the value by 0.128 to get actual amperage. 
+Battery charge current is located at 0xD4 ( decimal 212 ) .. divide the value by 0.128 to get actual amperage.
 
 Development brank is currently the i2c_display branch.  I'll be merging in the changes to master in the next week.
 
@@ -68,7 +77,7 @@ Based on feedback, I'm adding two types of i2c display:
 
  - Simple 20x4 character LCD display
  - Full color 0.96" OLED display
- 
+
 I am adding optional support for a 1-button (long-press menu, short press select ) and 5-button input matrix ( up,down,left,right,OK )   Expect this to be implemented somewhere around build v1.80.  
 
 
@@ -175,7 +184,7 @@ __NOTE__ **See my update on Feb 27th!  The correct algorithm to decode the check
 
 I am rewriting the code with a generic packet reader, which will check for i2c bus errors and the CRC, then return a PACKET struct containing the calculated checksum, and the three bytes ( everything reads 0xFF if there was an error )
 
--- 
+--
 
 The serial number is in plaintext ASCII, located at register 0xC6 (198)
 
@@ -222,6 +231,11 @@ Serial number are the bytes stored in 0x15-0x20 [ C01061400098 in the data below
 00100111 00100100 10101110 27 24 AE
 11010100 00100101 00000000 D4 25 0
 ```
+=======
+Feb 19, 2019
+
+On request of krex4, I am adding an i2c_display branch, with support for a four line backlit i2c display available on Amazon.com ( and other vendors such as AliExpress/BangGood, eBay, etc )   Once the display code is stable, I will merge it back into the master code branch.  
+>>>>>>> c1f480311c956d9ec8bed34d76ceccb4271bf063
 
 Feb 5, 2019
 
@@ -231,7 +245,7 @@ The data in register 12/204 is being worked on now, and I have a couple people h
 
 Jan 28, 2019
 
-The Segway battery exposes interesting data on the following registers on i2c when read in the same way as the battery voltage values ( 3 bytes read, discard first byte, data encoded on 2nd and 3rd byte ) 
+The Segway battery exposes interesting data on the following registers on i2c when read in the same way as the battery voltage values ( 3 bytes read, discard first byte, data encoded on 2nd and 3rd byte )
 
 Register 12 ( 0xC ) reads 31 triplets.  Byte 0 ( unknown ) , Byte 2 counts from Hex 0 -> 1E, Byte 3 ( unknown )
 Register 204 ( 0xCC ) reads 31 triplets.  Byte 0 ( unknown ), Bute 2 counts from Hex 0 -> 1E, Byte 3 ( unknown )
@@ -279,7 +293,7 @@ After debugging the code with @gmulberry's input and live experimentation by fee
 The code has been changed to reflect this, switching variables to the 32-bit long type to handle the math.  Each step of the ADC represents (8000/1023) or ~7.820 milivolts.
 
 
-Jan 26, 2019 
+Jan 26, 2019
 
 First check-in for the Arduino code!  You can read the voltages from the cell groups with the currently checked in code.  I'll be updating the code with more functions as I clean up my research code.  
 
@@ -298,7 +312,7 @@ Jan 20, 2019
 Thanks to Segway Nation Tours in Austin, TX - I once again have access to a supply of both good and red-light batteries to continue the development and research!  I have had about a month of downtime, so am catching up.  I now have an Arduino Uno connected to a battery and can read all 23 cells in the pack.  As it turns out, 12V is needed to "wake" the battery up and I have modifed the picture to reflect that.
 
 Initial Arduino -> Segway Battery pinout : Only four wires are required
- 
+
  - SCL -> SCL pin on Battery
  - SDA -> SDA pin on Battery
  - GND -> GND pin on Battery ( CAREFUL! Don't connect to Segway Battery POS terminal )

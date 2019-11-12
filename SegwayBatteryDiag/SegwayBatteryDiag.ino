@@ -1,14 +1,9 @@
+
 /*
    Segway Battery Diagnostics
    by Martin Bogomolni <martinbogo@gmail.com>
 
-
-   Created 15 Jan, 2019
-   Updated 20 Feb, 2019
-
-   v 1.55
-
-   This code is copyright 2019, and under the MIT License
+   This code is originally copyright 2019, and under the MIT License
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -29,26 +24,28 @@
    SOFTWARE.
 */
 
-#include <Wire.h>
+#define VERSION "1.124"
 
-//#define I2C_DISPLAY
-/* If you want to use an LCD I2C display, make sure you have the
-   LiquidCrystal_I2C library installed and enabled in your Arduino
-   installation
-*/
-#ifdef I2C_DISPLAY
-#include <LiquidCrystal_I2C.h>
-#define DISPADDR 0x27
-#define DISPCOLS 20
-#define DISPROWS 4
-LiquidCrystal_I2C lcd(DISPADDR, DISPCOLS, DISPROWS);
+#include <Wire.h>
+#include "config.h"
+
+#ifdef I2C_LCD_DISPLAY
+#include "i2c_lcd.h"
+#endif
+
+#ifdef SPI_OLED_DISPLAY
+#include "spi_oled.h"
+#endif
+
+#ifdef SERIAL_SHELL
+#include "serial_shell.h"
 #endif
 
 typedef struct {
   unsigned char chk;
   unsigned char msb;
   unsigned char lsb;
-  unsigned char mod;
+  unsigned char sum;
 } PACKET;
 
 typedef struct {
@@ -62,20 +59,13 @@ typedef struct {
 } CGROUP;
 
 typedef struct {
-  unsigned char chk;
-  unsigned char msb;
-  unsigned char lsb;
-} UNK;
+  unsigned char chk : 8;
+  unsigned char msb : 8;
+  unsigned char lsb : 8;
+} DEFPACKET;
 
-
-// For Lithium Segway Batteries uncomment these lines
-#define TYPE 0x31
-#define CELLGROUPS 23
-#define TSENSORS 4
-// For NiMH Segway Batteries uncomment these lines
-//#define TYPE 0x62
-//#define CELLGROUPS 6
-//#define TSENSORS 4
+char serialnumber[13];
+char revision[3];
 
 /*
    Currently known registers
@@ -83,49 +73,112 @@ typedef struct {
    0x17 0xD7 hold the temperature sensor info in 4 reads
    0x56 0x96 are used for battery group voltage in 23 reads
    0xC6 has the battery revision and serial number in 37 reads
+   0x1D has the battery State of Charge as one byte LSB
+   0xD4 has the battery amperage drain/charge as signed 16 bits ( divide by 0.128 )
 
    Currently unidentified registers
 
+   0x6
    0xC 0xCC is unknown but may contain battery status information
 
 */
 
 String serialnum;
+long DisplayRenderMillis;
+long menuMillis;
+long blinkMillis;
+long DisplayRenderInterval = 1000;
+long DisplayBlinkInterval = 5000;
+long menuInterval = 200;
 
 TEMP_SENSOR tempsensor[TSENSORS];
 CGROUP cgroup[CELLGROUPS];
-UNK unknown[31];
+DEFPACKET dpacket[31];
 
 void setup() {
+  // By using the Wire library, the internal pullup resistors are automatically engaged
   Wire.begin();        // join i2c bus (address optional for master)
-  Serial.begin(9600);  // start serial for output
+  Wire.setClock(400000);
+  Serial.begin(115200);  // start serial for output
+#ifdef SPI_OLED_DISPLAY
+  initDisplay();
+#endif
+#ifdef I2C_LCD_DISPLAY
+  initDisplay();
+#endif
+#ifdef SERIAL_SHELL
+  introMessage();
+  showMenu();
+#endif
 }
 
 void loop() {
-  introMessage();
-  while (1) {
-    doMenu();
+  // timing loop
+  unsigned long currentMillis = millis();
+
+#ifdef SERIAL_SHELL
+  if (currentMillis - menuMillis > menuInterval ) {
+    menuMillis = currentMillis;
+    doMenuInput();
+  }
+#endif
+
+#ifdef SPI_OLED__DISPLAY
+  if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
+    DisplayRenderMillis = currentMillis;
+    clearDisplay();
+    updateDisplay();
+  }
+#endif
+
+#ifdef I2C_LCD_DISPLAY
+  if (currentMillis - DisplayRenderMillis > DisplayRenderInterval ) {
+    DisplayRenderMillis = currentMillis;
+    updateDisplay();
+  }
+#endif
+
+  if (currentMillis - blinkMillis > DisplayBlinkInterval ) {
+    blinkMillis = currentMillis;
   }
 }
 
 int readPacket(int regval, PACKET &packet) {
-  unsigned char mod;
+  unsigned char sum;
   unsigned char chk;
   unsigned char msb;
   unsigned char lsb;
 
+  memset(&packet, 0, sizeof(packet));
   Wire.beginTransmission(TYPE);
   Wire.write(regval);
   int result = Wire.endTransmission();
-  if ( result != 0 ) {
+  if ( result ) {
+#ifdef SERIAL_SHELL
     Serial.print("I2C communication failed with error: [");
     Serial.print(result, DEC);
-    Serial.println("]");
-    packet.mod = 0xff;
-    packet.msb = 0xff;
-    packet.lsb = 0xff;
-    packet.chk = 0xff;
-    return -1;
+    Serial.print("] ");
+
+    switch (result) {
+      case 1:
+        Serial.println("XMIT buf too small");
+        break;
+      case 2:
+        Serial.println("NACK xmit of addr");
+        break;
+      case 3:
+        Serial.println("NACK xmit of data");
+        break;
+      case 4:
+        Serial.println("I2C unknown err");
+        break;
+    }
+#endif
+    packet.sum = 0xff;
+    packet.msb = 0x0;
+    packet.lsb = 0x0;
+    packet.chk = 0x0;
+    return result;
   }
 
   Wire.requestFrom(TYPE, 3);
@@ -133,11 +186,13 @@ int readPacket(int regval, PACKET &packet) {
     packet.chk = Wire.read();
     packet.msb = Wire.read();
     packet.lsb = Wire.read();
-    packet.mod = (packet.chk + packet.msb + packet.lsb) % 8;
+    packet.sum = (regval + packet.chk + packet.msb + packet.lsb + 1) % 64;
   }
+
+  return 0;
 }
 
-void readSerialNumber(void) {
+int readSerialNumber() {
   PACKET packet[37]; // We need to read 37 packets from register 198/0xC6
   PACKET temppacket; // To put the packet in the right place, in the right order
   char serial[16];
@@ -150,11 +205,19 @@ void readSerialNumber(void) {
   for ( int itor = 0; itor < 37; itor++ ) {
     result = readPacket(0xC6, temppacket);
     if ( result == -1 ) {
-      return;
+      return 1;
     }
-    if ( temppacket.chk == 0xff ) {
-      Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
-      return;
+    if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("I2C ERR");
+#endif
+      return 1;
+    }
+    if ( temppacket.sum != 0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("PACKET CHECKSUM INVALID");
+#endif
+      return 1;
     }
     memcpy(&packet[temppacket.msb], &temppacket, sizeof(temppacket));
   }
@@ -167,38 +230,58 @@ void readSerialNumber(void) {
     rev[itor] = packet[itor + 12].lsb;
   }
 
-  Serial.print(serial);
-  Serial.print(" Rev: ");
-  Serial.println(rev);
+  memset(serialnumber, 0, sizeof(serialnumber));
+  memset(revision, 0, sizeof(revision));
+  memcpy(serialnumber, serial, 12);
+  memcpy(revision, rev, 2);
 
+#ifdef SERIAL_SHELL
+  Serial.print("Serial Number: ");
+  Serial.print(serialnumber);
+  Serial.print(" Rev:");
+  Serial.println(revision);
+#endif
+
+  return 0;
 }
 
 void readTemps(void) {
+  PACKET temppacket;
+  int result;
+  int avgtemp;
   for (int i = 0; i < TSENSORS; i++) {
-    Wire.beginTransmission(TYPE);
-    Wire.write(0x17); // 0x17 and 0xD7 hold the temp sensor values, mirrored registers!
-    int result = Wire.endTransmission();
+    result = readPacket(0x17, temppacket); // 0x17 contains temperature data
     if ( result != 0 ) {
-      Serial.print("I2C communication failed with error: [");
-      Serial.print(result, DEC);
-      Serial.println("]");
       return;
     }
-
-    Wire.requestFrom(TYPE, 3);
-    while (Wire.available()) {
-      unsigned char t = Wire.read(); // checksum
-      delay(5);
-      char h = Wire.read(); // high byte
-      delay(5);
-      char l = Wire.read(); // low byte
-      tempsensor[i].chk = t;
-      tempsensor[i].temp = word(h, l) & 0xFFF; // mask off 12 bits ADC
-      float ctemp = tempsensor[i].temp * 0.0625; // Sensor -256C to +256C scaled by 4096
-      Serial.print("Temperature in deg C: ");
-      Serial.println(ctemp);
+    if ( temppacket.sum == 0xff ) {
+#ifdef SERIAL_SHELL
+      Serial.println("I2C ERR");
+#endif
+      return;
     }
+    if ( temppacket.sum != 0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("PACKET CHECKSUM INVALID");
+#endif
+      return;
+    }
+    tempsensor[i].temp = word(temppacket.msb, temppacket.lsb) & 0xFFF; // mask off 12 bits ADC
+    float ctemp = tempsensor[i].temp * 0.0625; // Sensor -256C to +256C scaled by 4096
+#ifdef SERIAL_SHELL
+    Serial.print("Temperature in deg C: ");
+    Serial.println(ctemp);
+#endif
   }
+
+  memset(&temppacket, 0, sizeof(temppacket));
+  result = readPacket(0x55, temppacket); // 85/0x55 149/0x95 contains pack average temp
+  avgtemp = word(temppacket.msb, temppacket.lsb) & 0xFFF; // mask off 12 bits ADC
+  float atemp = avgtemp * 0.0625; // Sensor -256C to +256C scaled by 4096
+#ifdef SERIAL_SHELL
+  Serial.print("Average Pack Temperature in deg C: ");
+  Serial.println(atemp);
+#endif
 }
 
 void readVoltages(void) {
@@ -209,11 +292,19 @@ void readVoltages(void) {
 
   for (int itor = 0; itor < CELLGROUPS; itor++) {
     result = readPacket(0x56, temppacket); // Both 0x56 and 0x96 registers hold the battery voltages, mirrored registers!
-    if ( result == -1 ) {
+    if ( result != 0 ) {
       return;
     }
-    if ( temppacket.mod == 0xff ) {
-      Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
+    if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("I2C ERR");
+#endif
+      return;
+    }
+    if ( temppacket.sum != 0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("PACKET CHECKSUM INVALID");
+#endif
       return;
     }
     number = word(temppacket.msb, temppacket.lsb) >> 11; // top 5 bits are cell group
@@ -223,7 +314,8 @@ void readVoltages(void) {
 
   for (int itor = 0; itor < CELLGROUPS; itor++) {
     float cellvoltage = ( cgroup[itor].voltage * 7.8201 ) / 1000;
-    Serial.print("Cell group ");
+#ifdef SERIAL_SHELL
+    Serial.print(" Cell group ");
     Serial.print(itor);
     Serial.print(" voltage is ");
     if ( cgroup[itor].voltage < 1023 ) {
@@ -231,6 +323,7 @@ void readVoltages(void) {
     } else {
       Serial.println("ERROR/INVALID");
     }
+#endif
     if ( cgroup[itor].voltage < 1023 ) {
       packvoltage = packvoltage + cellvoltage;
     }
@@ -241,37 +334,141 @@ void readVoltages(void) {
   Serial.println(" V");
 }
 
-void readUnknown(void) {
+float readStateOfCharge() {
+  float average_soc = 100;
   PACKET temppacket;
+  int result;
   int number;
-  float packvoltage = 0;
+  float stateofcharge;
+
+  memset(&temppacket, 0, sizeof(temppacket));
+
+  result = readPacket(0x1D, temppacket);
+  if ( result != 0 ) {
+    return 1;
+  }
+  if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+#ifdef SERIAL_SHELL
+    Serial.println("I2C ERR");
+#endif
+    return 1;
+  }
+  if ( temppacket.sum != 0 ) {
+#ifdef SERIAL_SHELL
+    Serial.println("PACKET CHECKSUM INVALID");
+#endif
+    return 1;
+  }
+
+  number = word(temppacket.msb, temppacket.lsb) & 0xFF; // 8 bits of SOC
+  stateofcharge = average_soc / number;
+#ifdef SERIAL_SHELL
+  Serial.print(stateofcharge, 2);
+  Serial.println("% State of Charge");
+#endif
+ return stateofcharge;
+}
+
+void readUnknown() {
+  PACKET temppacket;
   int result;
 
+  memset(&temppacket, 0, sizeof(temppacket));
   for (int itor = 0; itor < 0x1F; itor++) {
     result = readPacket(0xC, temppacket); // 0xC and 0xCC are mirrored registers with unknown data
-    if ( result == -1 ) {
+    if ( result != 0 ) {
       return;
     }
-    if ( temppacket.mod == 0xff ) {
-      Serial.println("COMMUNICATION ERROR DETECTED - CHECKSUM INVALID");
+    if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("I2C ERR");
+#endif
       return;
     }
-    Serial.print("checksum [0x");
-    Serial.print(temppacket.chk,HEX);
+    if ( temppacket.sum != 0 ) {
+#ifdef SERIAL_SHELL
+      Serial.println("PACKET CHECKSUM INVALID");
+#endif
+      return;
+    }
+#ifdef SERIAL_SHELL
+    Serial.print("msb [");
+    printBits(temppacket.msb);
+    Serial.print(" ");
+    Serial.print(temppacket.msb, DEC);
     Serial.print("] ");
-    Serial.print("msb [0x");
-    Serial.print(temppacket.msb,HEX);
-    Serial.print("] ");
-    Serial.print("lsb [0x");
-    Serial.print(temppacket.lsb,HEX);
+    Serial.print("lsb [");
+    printBits(temppacket.lsb);
+    Serial.print(" ");
+    Serial.print(temppacket.lsb, DEC);
     Serial.print("] ");
     Serial.print("ASCII [");
     Serial.write(temppacket.lsb);
     Serial.println("]");
+#endif
   }
 }
 
-void introMessage(void) {
+void readEveryRegister(void) {
+  PACKET temppacket;
+  int number;
+  float packvoltage = 0;
+  int result;
+  char buf[3];
+
+  for (int itor = 0; itor <= 0xFF; itor++) {
+    for (int ytor = 0; ytor < 5; ytor++ ) {
+      memset(&temppacket, 0, sizeof(temppacket));
+      result = readPacket(itor, temppacket);
+      if ( temppacket.sum == 0xff && temppacket.chk == 0x0 && temppacket.msb == 0x0 && temppacket.lsb == 0x0 ) {
+#ifdef SERIAL_SHELL
+        Serial.print("Register: ");
+        Serial.print(itor, DEC);
+        Serial.println("I2C ERR");
+#endif
+        continue;
+      }
+      if ( temppacket.msb == 0x0 && temppacket.lsb == 0x2 ) {
+        continue; // no interesting data at this register
+      }
+#ifdef SERIAL_SHELL
+      Serial.print("address [");
+      Serial.print(itor, DEC);
+      Serial.print(":0x");
+      Serial.print(itor, HEX);
+      Serial.print("] ");
+      Serial.print("msb [");
+      printBits(temppacket.msb);
+      Serial.print(" ");
+      Serial.print(temppacket.msb, DEC);
+      Serial.print("] ");
+      Serial.print("lsb [");
+      printBits(temppacket.lsb);
+      Serial.print(" ");
+      Serial.print(temppacket.lsb, DEC);
+      Serial.print("] ");
+      Serial.print("ASCII [");
+      Serial.write(temppacket.lsb);
+      Serial.println("]");
+#endif
+    }
+  }
+}
+
+void introMessage() {
+
+#ifdef I2C_LCD_DISPLAY
+  storeLine(1, "Seg Batt Diag");
+  storeLine(2, "V ");
+  storeLine(3, VERSION);
+  updateDisplay();
+#endif
+
+#ifdef SPI_OLED_DISPLAY
+  updateDisplay();
+#endif
+
+#ifdef SERIAL_SHELL
   Serial.println("Segway Battery Diagnostics");
   Serial.println("(C) 2019 Martin Bogomolni <martinbogo@gmail.com>");
   Serial.println("MIT License");
@@ -285,38 +482,5 @@ void introMessage(void) {
   Serial.println("");
   Serial.println("Connect SCL (j6) and SDA (J7) to Arduino I2C pins.");
   Serial.println("");
-}
-
-void doMenu(void) {
-  Serial.println("V) Read raw cell group voltages");
-  Serial.println("T) Read temperature sensors");
-  Serial.println("S) Read serial number");
-  Serial.println("U) Read unknown data from register 0xC/0xCC");
-  Serial.println("");
-  Serial.println("Press key to select menu item:");
-  for (;;) {
-    if (Serial.available() > 0) {
-      int inByte = Serial.read();
-      switch (inByte) {
-        case 'V': readVoltages(); break;
-        case 'v': readVoltages(); break;
-        case 'T': readTemps(); break;
-        case 't': readTemps(); break;
-        case 'S': readSerialNumber(); break;
-        case 's': readSerialNumber(); break;
-        case 'U': readUnknown(); break;
-        case 'u': readUnknown(); break;
-        default: continue;
-      }
-    }
-  }
-}
-
-void printBits(byte myByte) {
-  for (byte mask = 0x80; mask; mask >>= 1) {
-    if (mask  & myByte)
-      Serial.print('1');
-    else
-      Serial.print('0');
-  }
+#endif
 }
