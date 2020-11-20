@@ -6,10 +6,8 @@
  
 void doMenuInput(void) {
   if (Serial.available() > 0) {
-    int inuint8_t = Serial.read();
-    Serial.write(inuint8_t);
-    Serial.println(".");
-    switch (inuint8_t) {
+    uint8_t input = Serial.read();
+    switch (input) {
       case 'C': readStateOfCharge(); break;
       case 'c': readStateOfCharge(); break;
       case 'V': readVoltages(); break;
@@ -38,16 +36,13 @@ void printBits(uint8_t myuint8_t) {
   }
 }
 
+const char menuText[] PROGMEM = "V) Read voltages\nC) Read SoC\nT) Read Temps\nS) Read Serial no.\nU) Read 0xC/0xCC\nR) Read all\nH) Help\n\nPress Key\n\n";
+  
 void showMenu(void) {
-  Serial.println("V) Read raw cell group voltages");
-  Serial.println("C) Read state of charge");
-  Serial.println("T) Read temperature sensors");
-  Serial.println("S) Read serial number");
-  Serial.println("U) Read data from register 0xC/0xCC");
-  Serial.println("R) Read all registers once");
-  Serial.println("H) Help! Show this menu");
-  Serial.println("");
-  Serial.println("Press key to select menu item:");
+  for (byte k = 0; k < strlen_P(menuText); k++) {
+    char myChar = pgm_read_byte_near(menuText + k);
+    Serial.print(myChar);
+  }
 }
 
 #endif
