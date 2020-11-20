@@ -14,13 +14,6 @@ Included here are resources to help you such as:
  - Arduino .ino sketch with a simple menu system to read real-time diagnostics information from the battery
  - A breadboard schematic as well as pinout diagram for the Arduino and Segway battery to connect safely to the battery
 
-I'm working on:
-
- - A schematic and PCB layout in Eagle format, along with Gerbers and Excellon drill files for an example Arduino shield
- - A schematic and PCB layout in Eagle format for an Arduino Mega & Adafruit 3.5" TFT display + STL to 3D print a case
- - A schematic and PCB layout in Eagle format for a Raspberry Pi + Python code command line diag tool
- - A BOM ( Bill of Materials ) with sources and links to purchase parts
- - An STL file to 3D print a compatible connector to the Segway battery and instructions on how to assemble and use it safely.
  - If you need a 3D printed battery connector made, I highly recommend the one Rotek designed here on Shapeways.  Well worth supporting his work! https://www.shapeways.com/product/EN759FWRC/segway-battery-conector
 
 For information, please contact me here on GitHub by creating an issue.  I generally respond within 1-2 days.
