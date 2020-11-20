@@ -1,7 +1,7 @@
 # pt-battery-diagnostics
 **PT Battery Diagnostics**
 
-Arduino sketch, documentation for Segway Personal Transporter(tm) Li-ION and NiMH battery diagnostics ( also works with NiMH )
+Arduino sketch, documentation for Segway Personal Transporter(tm) Li-ION and NiMH battery diagnostics
 
 There have been a number of closed sourced solutions for battery diagnostics and management for the Segway PT and related batteries.  Many of these solutions have been sold with "per use" lockouts such as "battery gauges/revivers" which work around the battery saftey systems to bring low-voltage batteries back above 50V to allow charging.
 
@@ -12,7 +12,7 @@ This git repository is designed to open the world of Segway Battery management t
 Included here are resources to help you such as:
 
  - Arduino .ino sketch with a simple menu system to read real-time diagnostics information from the battery
- - A breadboard schematic as well as pinout diagram for the Arduino and Segway battery to connect safely to the battery
+ - A pinout diagram for the Arduino and Segway battery to connect safely to the battery
 
  - If you need a 3D printed battery connector made, I highly recommend the one Rotek designed here on Shapeways.  Well worth supporting his work! https://www.shapeways.com/product/EN759FWRC/segway-battery-conector
 
