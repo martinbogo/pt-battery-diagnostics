@@ -29,6 +29,10 @@ For information, please contact me here on GitHub by creating an issue.  I gener
 
 [ UPDATE ]
 
+Nov 19, 2020
+
+I am going to push some new code that reads the State of Charge for the whole battery, as well as the individual cells.  I am also going to push code that reads the current detection as well.   Today's code commit was to get the code working on a very small arduino ( mega168 ) at the request of a user. 
+
 Nov 8, 2019
 
 I have refactored the code significantly to do the Serial/LCD/OLED display cleanup.  For now I have this all checked into the i2c_display branch, and will be merging it back to the main branch as soon as I make sure the build is stable on Arduino Mega and Arduino Uno.
