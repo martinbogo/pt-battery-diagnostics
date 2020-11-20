@@ -102,7 +102,7 @@ DEFPACKET dpacket[31];
 void setup() {
   // By using the Wire library, the internal pullup resistors are automatically engaged
   Wire.begin(); // join i2c bus (address optional for master)
-  Wire.setClock(400000);
+  Wire.setClock(400000); // If 400000 doesn't work, try 100000 
 #ifdef HEARTBEAT_LED
   pinMode(HEARTBEAT_LED,OUTPUT);
 #endif
