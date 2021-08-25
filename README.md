@@ -4,7 +4,7 @@
 
 Aug 25, 2021
 
-Segway has discontinued work on the Personal Transporter series in 2020. I will accept issues that have pull requests attached, and fold-backs from forks.  At this point, I have no time to work on this codebase.  If you are interested in doing work, and you have a proven and responsible track-record on GitHub maintaining a codebase, I will allow commit access if you want to volunteer to maintain the codebase.
+Segway has discontinued work on the Personal Transporter series in 2020.  I no longer have access to any Lithium or NiMH batteries to test or debug code. I will accept issues that have pull requests attached, and fold-backs from forks.  At this point, I have no time to work on this codebase.  If you are interested in doing work, and you have a proven and responsible track-record on GitHub maintaining a codebase, I will allow commit access if you want to volunteer to maintain the codebase.
 
 **INTRO***
 
